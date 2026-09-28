@@ -173,3 +173,19 @@ main:not(.is-empty) .start{display:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 input::placeholder{color:var(--muted);opacity:.7}
 @media (max-width:600px){.top{flex-wrap:wrap}.top-actions{width:100%;justify-content:flex-start}}
+
+/* Proiezione a prezzo di listino */
+.price-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.price-head .sub{margin-bottom:0}
+.price-toggle{background:var(--brand);color:#fff;border:0;border-radius:999px;padding:9px 18px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.price-toggle:hover{background:var(--brand-deep)}
+.price-toggle[aria-expanded="true"]{background:var(--paper);color:var(--ink2);border:1px solid var(--line)}
+#priceBody{margin-top:18px}
+.price-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px;align-items:end}
+@media (max-width:1100px){.price-opts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.price-opts{grid-template-columns:1fr}}
+.price-opts label.f{margin-bottom:0}
+.price-opts select,.price-opts input{font-size:13.5px}
+.facts dd.good{color:var(--ok)}
+table.plan tr.full td{font-weight:600;background:var(--tint1)}
+.price-note{margin-top:10px}
