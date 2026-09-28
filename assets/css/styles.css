@@ -54,7 +54,7 @@ input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
 
 .ents{width:100%;border-collapse:collapse}
 .ents th{font-size:12px;font-weight:500;color:var(--muted);text-align:left;padding:0 0 6px}
-.ents th.n{text-align:right}
+.ents th.n{text-align:right;padding-left:6px;white-space:nowrap}
 .ents td{padding:3px 0}
 .ents td + td{padding-left:6px}
 .ents td:nth-child(2),.ents td:nth-child(3){width:70px}
@@ -167,5 +167,9 @@ table.plan tr.close .tag.close{background:var(--paper)}
 .start .ghost:hover{border-color:var(--brand);color:var(--brand-deep)}
 main.is-empty .res{display:none}
 main:not(.is-empty) .start{display:none}
-.top-actions{display:flex;gap:8px}
+.top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.lang select{appearance:none;-webkit-appearance:none;width:auto;background:var(--paper) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%237e7e97' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;border:1px solid var(--line);border-radius:999px;color:var(--ink2);cursor:pointer;font-size:13px;padding:7px 30px 7px 14px}
+.lang select:hover{border-color:var(--brand);color:var(--brand-deep)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 input::placeholder{color:var(--muted);opacity:.7}
+@media (max-width:600px){.top{flex-wrap:wrap}.top-actions{width:100%;justify-content:flex-start}}
