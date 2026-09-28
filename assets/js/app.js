@@ -2,8 +2,11 @@
 (function(){
   'use strict';
   var KEY = 'fit-rampup-v3';
-  var MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-  var MESI_L = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+  var LANG_KEY = 'fit-rampup-lang', LANGS = ['it','en','es','pt','de'];
+  var lang = null;
+  try{ lang = localStorage.getItem(LANG_KEY); }catch(e){}
+  if(LANGS.indexOf(lang)<0){ var nav=(navigator.language||'it').slice(0,2).toLowerCase(); lang=LANGS.indexOf(nav)>-1?nav:'it'; }
+  var T = window.I18N[lang];
   var PACKS = [10,15,20];
   var ALERT_RATIO = 2; // la chiusura scatta come alert se supera il doppio della media dei mesi precedenti
 
@@ -15,9 +18,10 @@
   function parse(s){ if(!s) return null; var p=s.split('-').map(Number); if(!p[0]||!p[1]) return null; return {y:p[0],m:p[1],d:p[2]||1}; }
   function mIdx(p){ return p.y*12+(p.m-1); }
   function frac(p){ var dim=new Date(p.y,p.m,0).getDate(); return mIdx(p)+(p.d-1)/dim; }
-  function lbl(i){ return MESI[((i%12)+12)%12]+' '+String(Math.floor(i/12)).slice(2); }
-  function lblL(i){ return MESI_L[((i%12)+12)%12]+' '+Math.floor(i/12); }
-  function plural(n,one,many){ return n+' '+(n===1?one:many); }
+  function mDate(i){ return new Date(Math.floor(i/12),((i%12)+12)%12,1); }
+  function lbl(i){ return new Intl.DateTimeFormat(T.locale,{month:'short',year:'2-digit'}).format(mDate(i)).replace('.',''); }
+  function lblL(i){ return new Intl.DateTimeFormat(T.locale,{month:'long',year:'numeric'}).format(mDate(i)); }
+  function plural(n,unit){ var u=T.units[unit]; return n+' '+(n===1?u[0]:u[1]); }
 
   /* ---------- Stato ---------- */
   function blank(){
@@ -33,7 +37,7 @@
   function example(){
     return {
       today: todayISO(), ob:'2026-11-01', setup:2, pilot:25, cap:3, pct:10, curve:'lin', order:'free',
-      entities:[{id:'a',name:'Entità A',pc:60,mob:20},{id:'b',name:'Entità B',pc:40,mob:15}],
+      entities:[{id:'a',name:T.entity+' A',pc:60,mob:20},{id:'b',name:T.entity+' B',pc:40,mob:15}],
       tools:[
         {key:'mdm',label:'MDM attuale',scope:'both',on:true,name:'ManageEngine',date:'2027-02-01',ents:['a']},
         {key:'edr',label:'EDR attuale',scope:'pc',on:true,name:'SentinelOne',date:'2027-03-01',ents:['a']}
@@ -46,9 +50,9 @@
   var dflt=blank(); Object.keys(dflt).forEach(function(k){ if(st[k]===undefined) st[k]=dflt[k]; });
   function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
 
-  function dn(e){ if(e.name&&e.name.trim()) return e.name; var i=st.entities.indexOf(e); return 'Entità '+String.fromCharCode(65+(i<0?0:i)); }
+  function dn(e){ if(e.name&&e.name.trim()) return e.name; var i=st.entities.indexOf(e); return T.entity+' '+String.fromCharCode(65+(i<0?0:i)); }
   function entById(id){ for(var i=0;i<st.entities.length;i++) if(st.entities[i].id===id) return st.entities[i]; return null; }
-  function entNames(ids){ var n=ids.map(function(id){ var e=entById(id); return e?dn(e):null; }).filter(Boolean); if(n.length<=1) return n.join(''); return n.slice(0,-1).join(', ')+' e '+n[n.length-1]; }
+  function entNames(ids){ var n=ids.map(function(id){ var e=entById(id); return e?dn(e):null; }).filter(Boolean); if(n.length<=1) return n.join(''); return n.slice(0,-1).join(', ')+T.and+n[n.length-1]; }
   function activeTools(){ return st.tools.filter(function(t){ return t.on && parse(t.date) && t.ents.length; }); }
   function toolEnd(t){ var r=frac(parse(t.date)); return Number.isInteger(r)?r:Math.floor(r)+1; } // primo mese senza lo strumento
   function toolActive(t,entId,idx){ return t.on && parse(t.date) && t.ents.indexOf(entId)>-1 && idx<frac(parse(t.date)); }
@@ -140,10 +144,10 @@
   }
   function renderEnts(){
     document.getElementById('entRows').innerHTML=st.entities.map(function(e){
-      return '<tr><td><input type="text" aria-label="Nome entità" placeholder="'+esc(dn(Object.assign({},e,{name:''})))+'" data-ent="'+e.id+'" data-f="name" value="'+esc(e.name)+'"></td>'+
-        '<td><input type="number" min="0" aria-label="PC di '+esc(dn(e))+'" placeholder="0" data-ent="'+e.id+'" data-f="pc" value="'+(e.pc||'')+'"></td>'+
-        '<td><input type="number" min="0" aria-label="Cellulari di '+esc(dn(e))+'" placeholder="0" data-ent="'+e.id+'" data-f="mob" value="'+(e.mob||'')+'"></td>'+
-        '<td>'+(st.entities.length>1?'<button class="x" type="button" aria-label="Rimuovi '+esc(dn(e))+'" data-del="'+e.id+'">&times;</button>':'')+'</td></tr>';
+      return '<tr><td><input type="text" aria-label="'+esc(T.entName)+'" placeholder="'+esc(dn(Object.assign({},e,{name:''})))+'" data-ent="'+e.id+'" data-f="name" value="'+esc(e.name)+'"></td>'+
+        '<td><input type="number" min="0" aria-label="'+esc(T.pcOf(dn(e)))+'" placeholder="0" data-ent="'+e.id+'" data-f="pc" value="'+(e.pc||'')+'"></td>'+
+        '<td><input type="number" min="0" aria-label="'+esc(T.mobOf(dn(e)))+'" placeholder="0" data-ent="'+e.id+'" data-f="mob" value="'+(e.mob||'')+'"></td>'+
+        '<td>'+(st.entities.length>1?'<button class="x" type="button" aria-label="'+esc(T.remove(dn(e)))+'" data-del="'+e.id+'">&times;</button>':'')+'</td></tr>';
     }).join('');
   }
   var entRows=document.getElementById('entRows');
@@ -168,12 +172,12 @@
   function renderTools(){
     document.getElementById('tools').innerHTML=st.tools.map(function(t,ti){
       return '<div class="tool'+(t.on?'':' off')+'">'+
-        '<div class="tool-head"><strong>'+t.label+'</strong><label class="switch"><input type="checkbox" data-t="'+ti+'" data-f="on"'+(t.on?' checked':'')+'>Presente</label></div>'+
+        '<div class="tool-head"><strong>'+esc(T.toolLabel[t.key])+'</strong><label class="switch"><input type="checkbox" data-t="'+ti+'" data-f="on"'+(t.on?' checked':'')+'>'+esc(T.present)+'</label></div>'+
         '<div class="tool-body"><div class="row2">'+
-          '<label class="f"><span>Nome</span><input type="text" placeholder="'+(t.key==='mdm'?'Es. Intune, Jamf':'Es. SentinelOne, CrowdStrike')+'" data-t="'+ti+'" data-f="name" value="'+esc(t.name)+'"></label>'+
-          '<label class="f"><span>Data di rinnovo</span><input type="date" data-t="'+ti+'" data-f="date" value="'+esc(t.date)+'"></label>'+
+          '<label class="f"><span>'+esc(T.name)+'</span><input type="text" placeholder="'+esc(T.toolPh[t.key])+'" data-t="'+ti+'" data-f="name" value="'+esc(t.name)+'"></label>'+
+          '<label class="f"><span>'+esc(T.renewalDate)+'</span><input type="date" data-t="'+ti+'" data-f="date" value="'+esc(t.date)+'"></label>'+
         '</div>'+
-        '<label class="f" style="margin-bottom:0"><span>Entità coperte'+(t.scope==='pc'?', solo PC':', PC e cellulari')+'</span></label>'+
+        '<label class="f" style="margin-bottom:0"><span>'+esc(T.covered[t.scope])+'</span></label>'+
         '<div class="chips">'+st.entities.map(function(e){ return '<button type="button" class="chip" data-t="'+ti+'" data-chip="'+e.id+'" aria-pressed="'+(t.ents.indexOf(e.id)>-1)+'">'+esc(dn(e))+'</button>'; }).join('')+'</div>'+
         '</div></div>';
     }).join('');
@@ -205,7 +209,7 @@
     renderEnts(); renderTools(); update();
   }
   document.getElementById('reset').addEventListener('click',function(){
-    if(isReady()&&!confirm('Svuotare tutti i dati e iniziare un nuovo piano?')) return;
+    if(isReady()&&!confirm(T.confirmReset)) return;
     load(blank());
   });
   document.getElementById('example').addEventListener('click',function(){ load(example()); });
@@ -219,9 +223,7 @@
     document.getElementById('totPC').textContent=totPC;
     document.getElementById('totMob').textContent=totMob;
     document.querySelectorAll('#curve button').forEach(function(b){ b.setAttribute('aria-pressed',String(b.getAttribute('data-c')===st.curve)); });
-    document.getElementById('curveCap').textContent=st.curve==='prog'
-      ? 'Il pacchetto raddoppia ogni mese: si parte piano e si accelera quando l\'ambiente è rodato.'
-      : 'Stesso pacchetto ogni mese, calcolato sul totale dei PC e sul totale dei cellulari.';
+    document.getElementById('curveCap').textContent=T.curveCap[st.curve];
 
     var sim=simulate(st.pct,st.curve);
     var H=document.getElementById('headline'), V=document.getElementById('verdicts');
@@ -229,11 +231,8 @@
     document.querySelector('main').classList.toggle('is-empty',!ready);
     if(!ready){
       var anyTool=st.tools.some(function(t){ return t.on&&parse(t.date)&&t.ents.length; });
-      var steps=[
-        {d:!!parse(st.ob),t:'Tempistiche',s:'Data di inizio onboarding, mesi di set up e pacchetto iniziale.'},
-        {d:totPC+totMob>0,t:'Flotta per entità',s:'Numero di PC e cellulari per ogni entità del cliente.'},
-        {d:anyTool,t:'Strumenti attuali (facoltativo)',s:'MDM ed EDR in uso, con data di rinnovo ed entità coperte.'}
-      ];
+      var done=[!!parse(st.ob),totPC+totMob>0,anyTool];
+      var steps=T.steps.map(function(x,i){ return {d:done[i],t:x[0],s:x[1]}; });
       document.getElementById('steps').innerHTML=steps.map(function(x){ return '<li'+(x.d?' class="done"':'')+'><div><b>'+x.t+'</b><span>'+x.s+'</span></div></li>'; }).join('');
       return;
     }
@@ -242,48 +241,48 @@
     var hasTools=activeTools().length>0;
     document.getElementById('pack').innerHTML=PACKS.map(function(p){
       var s=simulate(p,st.curve), status;
-      if(s.jump) status='<span class="s ko">Salto alla chiusura</span>';
-      else if(hasTools&&!renewalsOk(s)) status='<span class="s ko">Oltre almeno un rinnovo</span>';
-      else status='<span class="s ok">'+(hasTools?'Graduale ed entro i rinnovi':'Ramp-up graduale')+'</span>';
-      var m=s.closing>0?'Chiusura con '+plural(s.closing,'dispositivo','dispositivi'):'Nessuna chiusura forzata';
+      if(s.jump) status='<span class="s ko">'+T.status.jump+'</span>';
+      else if(hasTools&&!renewalsOk(s)) status='<span class="s ko">'+T.status.over+'</span>';
+      else status='<span class="s ok">'+(hasTools?T.status.okTools:T.status.ok)+'</span>';
+      var m=s.closing>0?T.packClosing(plural(s.closing,'device')):T.noClosing;
       return '<button type="button" data-p="'+p+'" aria-pressed="'+(st.pct===p)+'"><span class="p">'+p+'%</span><span class="m">'+m+'</span>'+status+'</button>';
     }).join('');
 
     // Titolo
     var span=sim.completion-sim.obIdx+1;
-    H.textContent='Flotta completa a '+lblL(sim.completion)+': tutti i '+sim.tot+' dispositivi in piattaforma in '+plural(span,'mese','mesi')+' dall\'inizio onboarding.';
+    H.textContent=T.headline(lblL(sim.completion),sim.tot,plural(span,'month'));
 
     // Esiti
     var items=[];
-    items.push({c:'neutral',h:'Set up da <b>'+lblL(sim.obIdx)+'</b>'+(sim.pilotPC+sim.pilotMob>0?' con un pacchetto iniziale di <b>'+sim.pilotPC+' PC e '+sim.pilotMob+' cellulari</b>':'')+(sim.rampStart<sim.closeIdx?(sim.closeIdx-1===sim.rampStart?', ramp-up graduale a <b>'+lblL(sim.rampStart)+'</b>.':', ramp-up graduale da <b>'+lblL(sim.rampStart)+'</b> a <b>'+lblL(sim.closeIdx-1)+'</b>.'):'. Nessun mese di ramp-up graduale prima della chiusura.')});
+    items.push({c:'neutral',h:T.setupLine({ob:lblL(sim.obIdx),pilot:sim.pilotPC+sim.pilotMob>0,pc:sim.pilotPC,mob:sim.pilotMob,
+      mode:sim.rampStart<sim.closeIdx?(sim.closeIdx-1===sim.rampStart?'one':'range'):'none',from:lblL(sim.rampStart),to:lblL(sim.closeIdx-1)})});
     if(sim.jump){
-      var curveName=st.curve==='prog'?'progressiva':'lineare';
+      var curveName=T.curveName[st.curve];
       var pSame=minPct(st.curve,function(s){ return !s.jump; });
       var other=st.curve==='prog'?'lin':'prog';
       var pOther=minPct(other,function(s){ return !s.jump; });
       var sugg=[];
-      if(pSame&&pSame===pOther) sugg.push('partire con almeno il <b>'+pSame+'%</b>');
+      if(pSame&&pSame===pOther) sugg.push(T.suggBoth(pSame));
       else {
-        if(pSame) sugg.push('partire con almeno il <b>'+pSame+'%</b> con curva '+curveName);
-        if(pOther) sugg.push('passare alla curva '+(other==='prog'?'progressiva':'lineare')+' con almeno il <b>'+pOther+'%</b>');
+        if(pSame) sugg.push(T.suggSame(pSame,curveName));
+        if(pOther) sugg.push(T.suggOther(T.curveName[other],pOther));
       }
-      items.push({c:'warn',h:'A <b>'+lblL(sim.closeIdx)+'</b> entrano <b>'+plural(sim.closing,'dispositivo','dispositivi')+'</b> in un solo mese, oltre il doppio della media dei mesi precedenti ('+Math.round(sim.avg)+'). La partenza è troppo lenta: '+(sugg.length?'conviene '+sugg.join(' oppure ')+'.':'conviene allungare la durata del ramp-up o ridurre il set up.')});
+      items.push({c:'warn',h:T.jumpLine({m:lblL(sim.closeIdx),n:plural(sim.closing,'device'),avg:Math.round(sim.avg),sugg:sugg.join(T.or)})});
     } else if(sim.closing>0){
-      items.push({c:'ok',h:'A <b>'+lblL(sim.closeIdx)+'</b> entrano gli ultimi <b>'+plural(sim.closing,'dispositivo','dispositivi')+'</b>, in linea con il ritmo dei mesi precedenti.'});
+      items.push({c:'ok',h:T.closeOk(lblL(sim.closeIdx),plural(sim.closing,'device'))});
     }
     st.tools.forEach(function(t){
       if(!t.on) return;
-      var nm='<b>'+esc(t.name||t.label)+'</b>';
-      if(!parse(t.date)){ items.push({c:'neutral',h:nm+': inserisci la data di rinnovo.'}); return; }
-      if(!t.ents.length){ items.push({c:'neutral',h:nm+': seleziona le entità coperte.'}); return; }
+      var nm='<b>'+esc(t.name||T.toolLabel[t.key])+'</b>';
+      if(!parse(t.date)){ items.push({c:'neutral',h:T.needDate(nm)}); return; }
+      if(!t.ents.length){ items.push({c:'neutral',h:T.needEnts(nm)}); return; }
       var ev=evalTool(sim,t), who=esc(entNames(t.ents)), rn=lblL(Math.floor(frac(parse(t.date))));
-      if(ev.beforeStart){ items.push({c:'warn',h:nm+': il rinnovo di '+rn+' cade prima dell\'inizio onboarding. Per non restare scoperti serve un rinnovo ponte fino alla migrazione di '+who+'.'}); return; }
+      if(ev.beforeStart){ items.push({c:'warn',h:T.beforeStart(nm,rn,who)}); return; }
       if(ev.met){
-        items.push({c:'ok',h:nm+': '+who+' '+(t.ents.length>1?'completate':'completata')+' a '+lblL(ev.doneIdx)+', prima del rinnovo di '+rn+'. Sovrapposizione per '+plural(ev.ovMonths,'mese','mesi')+', azzerata da <b>'+lblL(ev.end)+'</b>.'});
+        items.push({c:'ok',h:T.met({nm:nm,who:who,many:t.ents.length>1,done:lblL(ev.doneIdx),rn:rn,ov:plural(ev.ovMonths,'month'),ovN:ev.ovMonths,end:lblL(ev.end)})});
       } else {
         var mp=minPct(st.curve,function(s){ return evalTool(s,t).met; });
-        var remTxt=ev.remAt===1?'resta <b>1 dispositivo</b>':'restano <b>'+ev.remAt+' dispositivi</b>';
-        items.push({c:'warn',h:nm+': al rinnovo di '+rn+' '+remTxt+' di '+who+' da migrare. '+(mp?'Per chiudere in tempo serve un pacchetto di almeno il '+mp+'%'+(st.order==='free'?' o dare priorità a '+who:'')+'.':'Con questa data di avvio nessun pacchetto chiude in tempo: valutare un rinnovo breve o anticipare l\'avvio.')});
+        items.push({c:'warn',h:T.notMet({nm:nm,rn:rn,rem:ev.remAt,who:who,mp:mp,prio:st.order==='free'})});
       }
     });
     V.innerHTML=items.map(function(i){ return '<li class="'+i.c+'"><span>'+i.h+'</span></li>'; }).join('');
@@ -292,10 +291,10 @@
     var t0=parse(st.today), weeks=null;
     if(t0){ var d0=new Date(t0.y,t0.m-1,t0.d), ob=parse(st.ob), d1=new Date(ob.y,ob.m-1,ob.d); weeks=Math.round((d1-d0)/(7*864e5)); }
     document.getElementById('facts').innerHTML=
-      '<div><dt>Primo pacchetto mensile</dt><dd>'+sim.firstPC+' PC, '+sim.firstMob+' cell.</dd></div>'+
-      '<div><dt>Mesi di ramp-up graduale</dt><dd>'+sim.gradual+'</dd></div>'+
-      '<div><dt>Pacchetto di chiusura</dt><dd'+(sim.jump?' class="warn"':'')+'>'+(sim.closing>0?plural(sim.closing,'dispositivo','dispositivi'):'Nessuno')+'</dd></div>'+
-      '<div><dt>Avvio onboarding</dt><dd>'+(weeks===null?lbl(sim.obIdx):(weeks>0?'tra '+weeks+' sett.':(weeks===0?'questa sett.':'avviato')))+'</dd></div>';
+      '<div><dt>'+T.facts.first+'</dt><dd>'+T.firstVal(sim.firstPC,sim.firstMob)+'</dd></div>'+
+      '<div><dt>'+T.facts.gradual+'</dt><dd>'+sim.gradual+'</dd></div>'+
+      '<div><dt>'+T.facts.closing+'</dt><dd'+(sim.jump?' class="warn"':'')+'>'+(sim.closing>0?plural(sim.closing,'device'):T.none)+'</dd></div>'+
+      '<div><dt>'+T.facts.start+'</dt><dd>'+(weeks===null?lbl(sim.obIdx):(weeks>0?T.inWeeks(weeks):(weeks===0?T.thisWeek:T.started)))+'</dd></div>';
 
     drawChart(sim);
     drawPlan(sim);
@@ -311,7 +310,7 @@
     var ymax=Math.max(20,Math.ceil(sim.tot*1.12/20)*20);
     function y(v){ return mt+(Hh-mt-mb)*(1-v/ymax); }
     function xAt(f){ return ml+(f-start)*cw; }
-    var s='<svg viewBox="0 0 '+W+' '+Hh+'" role="img" aria-label="Dispositivi in piattaforma per mese">';
+    var s='<svg viewBox="0 0 '+W+' '+Hh+'" role="img" aria-label="'+esc(T.chartAria)+'">';
     // finestra di ramp-up
     var wx=xAt(sim.obIdx), wx2=xAt(sim.closeIdx);
     if(wx2>wx) s+='<rect class="win" x="'+wx+'" y="'+mt+'" width="'+(wx2-wx)+'" height="'+(y(0)-mt)+'" rx="6"/>';
@@ -320,21 +319,21 @@
     for(var i=0;i<n;i++){
       var idx=start+i, tot=inPlatform(sim,idx), ov=overlapAt(sim,idx), clean=tot-ov, cx=ml+(i+.5)*cw, bx=cx-bw/2;
       if(tot>0){
-        s+='<rect class="bar b-clean" x="'+bx+'" y="'+y(clean)+'" width="'+bw+'" height="'+(y(0)-y(clean))+'" rx="3"><title>'+lblL(idx)+': '+tot+' in piattaforma, '+ov+' in sovrapposizione</title></rect>';
-        if(ov>0) s+='<rect class="bar b-ov" x="'+bx+'" y="'+y(tot)+'" width="'+bw+'" height="'+(y(clean)-y(tot))+'" rx="3"><title>'+lblL(idx)+': '+ov+' in sovrapposizione</title></rect>';
+        s+='<rect class="bar b-clean" x="'+bx+'" y="'+y(clean)+'" width="'+bw+'" height="'+(y(0)-y(clean))+'" rx="3"><title>'+esc(T.tipBar(lblL(idx),tot,ov))+'</title></rect>';
+        if(ov>0) s+='<rect class="bar b-ov" x="'+bx+'" y="'+y(tot)+'" width="'+bw+'" height="'+(y(clean)-y(tot))+'" rx="3"><title>'+esc(T.tipOv(lblL(idx),ov))+'</title></rect>';
         if(n<=24) s+='<text class="val" x="'+cx+'" y="'+(y(tot)-5)+'" text-anchor="middle">'+tot+'</text>';
       }
       var isClose=idx===sim.closeIdx&&sim.closing>0;
       if(i%every===0||isClose) s+='<text class="ax'+(isClose?' close':'')+'" x="'+cx+'" y="'+(Hh-mb+18)+'" text-anchor="middle">'+lbl(idx)+'</text>';
-      if(isClose) s+='<text class="ax close" x="'+cx+'" y="'+(Hh-mb+33)+'" text-anchor="middle">chiusura</text>';
+      if(isClose) s+='<text class="ax close" x="'+cx+'" y="'+(Hh-mb+33)+'" text-anchor="middle">'+esc(T.closeLbl)+'</text>';
     }
     s+='<line class="tot" x1="'+ml+'" x2="'+(W-mr)+'" y1="'+y(sim.tot)+'" y2="'+y(sim.tot)+'"/>';
-    s+='<text class="tot-l" x="'+(ml+6)+'" y="'+(y(sim.tot)-6)+'" text-anchor="start">Flotta totale '+sim.tot+'</text>';
+    s+='<text class="tot-l" x="'+(ml+6)+'" y="'+(y(sim.tot)-6)+'" text-anchor="start">'+esc(T.totLbl(sim.tot))+'</text>';
 
     var mk=[];
-    if(todayP) mk.push({f:frac(todayP),t:'Oggi',c:'var(--muted)',d:'2 3'});
-    mk.push({f:frac(parse(st.ob)),t:'Inizio onboarding',c:'var(--brand-deep)',d:''});
-    activeTools().forEach(function(t){ mk.push({f:frac(parse(t.date)),t:'Rinnovo '+(t.name||t.label),c:'var(--amber)',d:''}); });
+    if(todayP) mk.push({f:frac(todayP),t:T.todayMk,c:'var(--muted)',d:'2 3'});
+    mk.push({f:frac(parse(st.ob)),t:T.obMk,c:'var(--brand-deep)',d:''});
+    activeTools().forEach(function(t){ mk.push({f:frac(parse(t.date)),t:T.renewalMk(t.name||T.toolLabel[t.key]),c:'var(--amber)',d:''}); });
     mk=mk.filter(function(m){ return m.f>=start&&m.f<=end+1; }).sort(function(a,b){ return a.f-b.f; });
     var lanes=[-Infinity,-Infinity,-Infinity];
     mk.forEach(function(m){
@@ -351,20 +350,36 @@
   }
 
   function drawPlan(sim){
-    var ends={}; activeTools().forEach(function(t){ var e=toolEnd(t); (ends[e]=ends[e]||[]).push(t.name||t.label); });
+    var ends={}; activeTools().forEach(function(t){ var e=toolEnd(t); (ends[e]=ends[e]||[]).push(t.name||T.toolLabel[t.key]); });
     var rows=sim.months.map(function(m){
       var pc=0,mob=0,who=[];
-      st.entities.forEach(function(e){ var a=m.add[e.id]; if(!a) return; pc+=a.pc; mob+=a.mob; if(a.pc||a.mob){ var parts=[]; if(a.pc) parts.push(a.pc+' PC'); if(a.mob) parts.push(plural(a.mob,'cellulare','cellulari')); who.push(esc(dn(e))+': '+parts.join(', ')); } });
+      st.entities.forEach(function(e){ var a=m.add[e.id]; if(!a) return; pc+=a.pc; mob+=a.mob; if(a.pc||a.mob){ var parts=[]; if(a.pc) parts.push(a.pc+' '+T.pc); if(a.mob) parts.push(plural(a.mob,'phone')); who.push(esc(dn(e))+': '+parts.join(', ')); } });
       var tag;
-      if(m.phase==='close') tag='<span class="tag close">Chiusura</span>';
-      else if(m.phase==='setup') tag='<span class="tag setup">Set up</span>';
-      else tag='<span class="tag">Ramp-up</span>';
-      if(m.idx===sim.completion&&m.phase!=='close') tag+=' <span class="tag">Flotta completa</span>';
-      var endTag=ends[m.idx]?' <span class="tag end">Senza '+esc(ends[m.idx].join(' e '))+'</span>':'';
-      return '<tr'+(m.phase==='close'&&sim.jump?' class="close"':'')+'><td>'+lblL(m.idx)+'</td><td>'+tag+endTag+'</td><td class="n">'+pc+'</td><td class="n">'+mob+'</td><td class="n">'+inPlatform(sim,m.idx)+'</td><td class="who">'+(who.join('<br>')||'Configurazione ambiente')+'</td></tr>';
+      if(m.phase==='close') tag='<span class="tag close">'+T.tag.close+'</span>';
+      else if(m.phase==='setup') tag='<span class="tag setup">'+T.tag.setup+'</span>';
+      else tag='<span class="tag">'+T.tag.ramp+'</span>';
+      if(m.idx===sim.completion&&m.phase!=='close') tag+=' <span class="tag">'+T.tag.full+'</span>';
+      var endTag=ends[m.idx]?' <span class="tag end">'+esc(T.without(ends[m.idx].join(T.and)))+'</span>':'';
+      return '<tr'+(m.phase==='close'&&sim.jump?' class="close"':'')+'><td>'+lblL(m.idx)+'</td><td>'+tag+endTag+'</td><td class="n">'+pc+'</td><td class="n">'+mob+'</td><td class="n">'+inPlatform(sim,m.idx)+'</td><td class="who">'+(who.join('<br>')||T.envSetup)+'</td></tr>';
     });
-    document.getElementById('plan').innerHTML='<table class="plan"><thead><tr><th>Mese</th><th>Fase</th><th class="n">PC</th><th class="n">Cellulari</th><th class="n">In piattaforma</th><th>Entità</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+    document.getElementById('plan').innerHTML='<table class="plan"><thead><tr><th>'+T.planH[0]+'</th><th>'+T.planH[1]+'</th><th class="n">'+T.planH[2]+'</th><th class="n">'+T.planH[3]+'</th><th class="n">'+T.planH[4]+'</th><th>'+T.planH[5]+'</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
-  bindSimple(); renderEnts(); renderTools(); update();
+  function applyStatic(){
+    document.documentElement.lang=lang;
+    document.title=T.title;
+    document.querySelectorAll('[data-i18n]').forEach(function(el){ var v=T[el.getAttribute('data-i18n')]; if(typeof v==='string') el.textContent=v; });
+    document.querySelectorAll('[data-i18n-aria]').forEach(function(el){ var v=T[el.getAttribute('data-i18n-aria')]; if(typeof v==='string') el.setAttribute('aria-label',v); });
+    document.getElementById('lang').value=lang;
+  }
+  document.getElementById('lang').addEventListener('change',function(ev){
+    if(LANGS.indexOf(ev.target.value)<0) return;
+    lang=ev.target.value; T=window.I18N[lang];
+    var defaultName=new RegExp('^('+LANGS.map(function(l){ return window.I18N[l].entity; }).join('|')+') ([A-Z])$');
+    st.entities.forEach(function(e){ var m=defaultName.exec(e.name||''); if(m) e.name=T.entity+' '+m[2]; });
+    try{ localStorage.setItem(LANG_KEY,lang); }catch(e){}
+    applyStatic(); renderEnts(); renderTools(); update();
+  });
+
+  applyStatic(); bindSimple(); renderEnts(); renderTools(); update();
 })();
