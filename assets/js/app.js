@@ -27,7 +27,7 @@
   function blank(){
     return {
       today: todayISO(), ob:'', setup:'', pilot:'', cap:3, pct:10, curve:'lin', order:'free',
-      price:{open:false,pc:'lap',mob:'mob',sec:'none',disc:0,bill:'m'},
+      price:{open:false,plan:'ops',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'m'},
       entities:[{id:uid(),name:'',pc:0,mob:0}],
       tools:[
         {key:'mdm',label:'MDM attuale',scope:'both',on:false,name:'',date:'',ents:[]},
@@ -37,7 +37,7 @@
   }
   function example(){
     return {
-      price:{open:false,pc:'lap',mob:'mob',sec:'edr',disc:0,bill:'m'},
+      price:{open:false,plan:'comp',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'m'},
       today: todayISO(), ob:'2026-11-01', setup:2, pilot:25, cap:3, pct:10, curve:'lin', order:'free',
       entities:[{id:'a',name:T.entity+' A',pc:60,mob:20},{id:'b',name:T.entity+' B',pc:40,mob:15}],
       tools:[
@@ -50,13 +50,17 @@
   try{ var raw=localStorage.getItem(KEY); st=raw?JSON.parse(raw):null; }catch(e){ st=null; }
   if(!st||!st.entities||!st.tools) st=blank();
   var dflt=blank(); Object.keys(dflt).forEach(function(k){ if(st[k]===undefined) st[k]=dflt[k]; });
+  if(st.price && st.price.plan===undefined){ // stato salvato con la versione precedente della proiezione
+    var old=st.price; st.price=dflt.price; st.price.open=!!old.open; st.price.mob=old.mob||'mob'; st.price.disc=old.disc||0; st.price.bill=old.bill||'m';
+    st.price.edr=old.sec==='edr'||old.sec==='mdr'; st.price.mdr=old.sec==='mdr';
+  }
   function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
 
   function dn(e){ if(e.name&&e.name.trim()) return e.name; var i=st.entities.indexOf(e); return T.entity+' '+String.fromCharCode(65+(i<0?0:i)); }
   function entById(id){ for(var i=0;i<st.entities.length;i++) if(st.entities[i].id===id) return st.entities[i]; return null; }
   function entNames(ids){ var n=ids.map(function(id){ var e=entById(id); return e?dn(e):null; }).filter(Boolean); if(n.length<=1) return n.join(''); return n.slice(0,-1).join(', ')+T.and+n[n.length-1]; }
   // L'EDR attuale conta (sovrapposizione, rinnovo) solo se il pacchetto proposto include l'EDR di Factorial.
-  function edrBought(){ return !!st.price && st.price.sec!=='none'; }
+  function edrBought(){ var pr=st.price; return !!pr && (window.PRICING.plans[pr.plan].edr || pr.edr || pr.mdr); }
   function toolRelevant(t){ return t.key!=='edr' || edrBought(); }
   function activeTools(){ return st.tools.filter(function(t){ return t.on && parse(t.date) && t.ents.length && toolRelevant(t); }); }
   function toolEnd(t){ var r=frac(parse(t.date)); return Number.isInteger(r)?r:Math.floor(r)+1; } // primo mese senza lo strumento
@@ -191,7 +195,12 @@
   var toolsBox=document.getElementById('tools');
   toolsBox.addEventListener('input',function(ev){
     var el=ev.target;
-    if(el.getAttribute('data-swap')){ st.price.sec=el.checked?(st.price.sec==='none'?'edr':st.price.sec):'none'; renderPriceOpts(); update(); return; }
+    if(el.getAttribute('data-swap')){
+      var pr=st.price;
+      if(el.checked){ if(!P.plans[pr.plan].edr) pr.edr=true; }
+      else { if(P.plans[pr.plan].edr) pr.plan='ops'; pr.edr=false; pr.mdr=false; }
+      renderPriceOpts(); update(); return;
+    }
     var ti=el.getAttribute('data-t'); if(ti===null) return;
     var t=st.tools[+ti], f=el.getAttribute('data-f');
     if(f==='on'){ t.on=el.checked; el.closest('.tool').classList.toggle('off',!t.on); }
@@ -385,17 +394,25 @@
   var P=window.PRICING;
   function money(v){ return new Intl.NumberFormat(T.locale,{style:'currency',currency:P.currency,maximumFractionDigits:2,minimumFractionDigits:2}).format(v); }
   function unitPrices(){
-    var pr=st.price;
-    return {pc:(P.pc[pr.pc]||0)+(pr.sec==='edr'?P.sec.edr:0)+(pr.sec==='mdr'?P.sec.edr+P.sec.mdr:0), mob:P.mob[pr.mob]||0,
+    var pr=st.price, plan=P.plans[pr.plan], needEdr=(pr.edr||pr.mdr)&&!plan.edr;
+    return {pc:plan.cost+(pr.intune?P.addons.intune:0)+(needEdr?P.addons.edr:0)+(pr.mdr?P.addons.mdr:0), mob:pr.mob==='mob'?P.mob:0,
       mult:(1-Math.min(P.maxDiscount,Math.max(0,+pr.disc||0))/100)*(pr.bill==='y'?P.annualFactor:1)};
   }
   function opt(v,label,price,cur){ return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+esc(label)+(price?' · '+esc(money(price).replace(/[.,]00(?=\D|$)/,''))+' '+esc(T.perDev):'')+'</option>'; }
+  function addon(k,label,price,on,locked){
+    var incl=k==='edr'&&P.plans[st.price.plan].edr;
+    return '<button type="button" class="chip" data-addon="'+k+'" aria-pressed="'+!!on+'"'+(locked?' disabled':'')+'>'+esc(label)+' · '+(incl?esc(T.included):'+'+esc(money(price).replace(/[.,]00(?=\D|$)/,'')))+'</button>';
+  }
   function renderPriceOpts(){
     var pr=st.price;
     document.getElementById('priceOpts').innerHTML=
-      '<label class="f"><span>'+esc(T.optPc)+'</span><select data-p="pc">'+opt('lap',T.modLap,P.pc.lap,pr.pc)+opt('intune',T.modIntune,P.pc.intune,pr.pc)+opt('none',T.noneOpt,0,pr.pc)+'</select></label>'+
-      '<label class="f"><span>'+esc(T.optMob)+'</span><select data-p="mob">'+opt('mob',T.modMob,P.mob.mob,pr.mob)+opt('none',T.noneOpt,0,pr.mob)+'</select></label>'+
-      '<label class="f"><span>'+esc(T.optSec)+'</span><select data-p="sec">'+opt('none',T.noneOpt,0,pr.sec)+opt('edr',T.modEdr,P.sec.edr,pr.sec)+opt('mdr',T.modMdr,P.sec.edr+P.sec.mdr,pr.sec)+'</select></label>'+
+      '<label class="f wide"><span>'+esc(T.optPlan)+'</span><select data-p="plan">'+opt('ops',T.planOps,P.plans.ops.cost,pr.plan)+opt('comp',T.planComp,P.plans.comp.cost,pr.plan)+opt('alc',T.planAlc,P.plans.alc.cost,pr.plan)+'</select></label>'+
+      '<label class="f"><span>'+esc(T.optMob)+'</span><select data-p="mob">'+opt('mob',T.modMob,P.mob,pr.mob)+opt('none',T.noneOpt,0,pr.mob)+'</select></label>'+
+      '<div class="f wide addons"><span>'+esc(T.optAddons)+'</span><div class="chips">'+
+        addon('intune',T.addIntune,P.addons.intune,pr.intune,false)+
+        addon('edr','SentinelOne EDR',P.addons.edr,pr.edr||pr.mdr||P.plans[pr.plan].edr,P.plans[pr.plan].edr||pr.mdr)+
+        addon('mdr','SentinelOne MDR',P.addons.mdr,pr.mdr,false)+
+      '</div></div>'+
       '<label class="f"><span>'+esc(T.optDisc)+'</span><input type="number" min="0" max="'+P.maxDiscount+'" placeholder="0" data-p="disc" value="'+(pr.disc||'')+'"></label>'+
       '<label class="f"><span>'+esc(T.optBill)+'</span><select data-p="bill">'+opt('m',T.billM,0,pr.bill)+opt('y',T.billY,0,pr.bill)+'</select></label>';
   }
@@ -409,8 +426,15 @@
     var k=ev.target.getAttribute('data-p'); if(!k) return;
     if(k==='disc'){ var d=Math.max(0,parseFloat(ev.target.value)||0); if(d>P.maxDiscount){ d=P.maxDiscount; ev.target.value=d; } st.price.disc=d; }
     else st.price[k]=ev.target.value;
-    if(k==='sec') renderTools();
+    if(k==='plan'){ renderPriceOpts(); renderTools(); }
     update();
+  });
+  document.getElementById('priceOpts').addEventListener('click',function(ev){
+    var b=ev.target.closest('[data-addon]'); if(!b||b.disabled) return;
+    var k=b.getAttribute('data-addon'), pr=st.price;
+    pr[k]=!pr[k];
+    if(k==='mdr'&&pr.mdr&&!P.plans[pr.plan].edr) pr.edr=true; // MDR richiede EDR
+    renderPriceOpts(); renderTools(); update();
   });
   function kindAt(sim,idx){ var pc=0,mob=0; st.entities.forEach(function(e){ var c=sim.cumAt(idx,e.id); pc+=c.pc; mob+=c.mob; }); return {pc:pc,mob:mob}; }
   function drawPrice(sim){
