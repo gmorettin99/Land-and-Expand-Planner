@@ -13,7 +13,7 @@
 <body>
 <header class="top">
   <img class="logo" src="assets/img/factorial-it-logo.png" alt="Factorial IT" width="162" height="28">
-  <button class="reset" id="reset" type="button">Ripristina esempio</button>
+  <div class="top-actions"><button class="reset" id="example" type="button">Carica esempio</button><button class="reset" id="reset" type="button">Nuovo piano</button></div>
 </header>
 
 <div class="wrap">
@@ -25,8 +25,8 @@
         <label class="f"><span>Inizio onboarding</span><input type="date" data-k="ob"></label>
       </div>
       <div class="row3">
-        <label class="f"><span>Mesi di set up</span><input type="number" min="0" max="12" data-k="setup"></label>
-        <label class="f"><span>Pacchetto iniziale</span><input type="number" min="0" data-k="pilot"></label>
+        <label class="f"><span>Mesi di set up</span><input type="number" min="0" max="12" placeholder="0" data-k="setup"></label>
+        <label class="f"><span>Pacchetto iniziale</span><input type="number" min="0" placeholder="0" data-k="pilot"></label>
         <label class="f"><span>Mesi di ramp-up</span><input type="number" min="1" max="12" data-k="cap"></label>
       </div>
       <p class="hint">La durata del ramp-up si conta in mesi dall'inizio onboarding, set up incluso. Il mese successivo entra tutta la flotta rimanente.</p>
@@ -59,7 +59,16 @@
     </div>
   </aside>
 
-  <main>
+  <main class="is-empty">
+    <section class="start" aria-labelledby="startTitle">
+      <p class="eyebrow">Nuovo piano di ramp-up</p>
+      <h1 id="startTitle">Configura il piano del cliente</h1>
+      <p class="lead">Compila i dati a sinistra. Il piano, il grafico e il calendario mese per mese compaiono appena ci sono data di avvio e flotta.</p>
+      <ol class="steps" id="steps"></ol>
+      <button class="ghost" id="example2" type="button">Parti da un esempio</button>
+    </section>
+
+    <div class="res">
     <section class="hero">
       <p class="eyebrow">Piano di ramp-up</p>
       <h1 id="headline"></h1>
@@ -94,6 +103,7 @@
       <p class="sub">Dispositivi da attivare ogni mese e a quale entità appartengono.</p>
       <div class="scroll" id="plan"></div>
     </section>
+    </div>
   </main>
 </div>
 
