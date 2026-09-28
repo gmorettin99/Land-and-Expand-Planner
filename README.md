@@ -9,6 +9,7 @@ index.html                         pagina del tool
 assets/css/styles.css              stile (palette rossa Factorial della mappa ecosistema, DM Sans)
 assets/js/app.js                   logica di calcolo e rendering
 assets/js/i18n.js                  testi in italiano, inglese, spagnolo, portoghese e tedesco
+assets/js/pricing.js               prezzi di listino dei moduli (dal Quote Management Tool)
 assets/img/factorial-it-logo.png   logo Factorial IT
 ```
 
@@ -21,6 +22,7 @@ Nessuna dipendenza e nessun build: basta aprire `index.html` nel browser o pubbl
 - **Pacchetto mensile**: 10%, 15% o 20% del totale PC e del totale cellulari. Con la curva lineare il pacchetto resta uguale ogni mese, con la progressiva raddoppia mese su mese.
 - **Alert di partenza lenta**: scatta quando la chiusura supera il doppio della media dei mesi precedenti. In quel caso suggerisce la percentuale minima per ciascuna curva. La soglia si modifica con `ALERT_RATIO` in `app.js`.
 - **Strumenti attuali**: l'MDM conta PC e cellulari, l'EDR solo i PC. Lo strumento si considera dismesso alla data di rinnovo.
+- **Proiezione a prezzo di listino**: in fondo al piano, il pulsante apre il costo mese per mese. Si scelgono i moduli per PC (gestione laptop e desktop o con integrazione Intune, SentinelOne EDR o EDR + MDR) e per cellulari, lo sconto (max 30%) e la fatturazione annuale (-10%). Ogni mese si pagano i dispositivi attivati fino a quel mese. I prezzi stanno in `pricing.js` e vanno aggiornati lì se cambiano nel quote tool.
 - **Ordine di migrazione**: si può partire dalle entità senza strumenti, da quelle con il rinnovo più vicino, oppure seguire l'ordine della lista.
 
 Il tool si apre vuoto: si inseriscono i dati del cliente e il piano compare appena ci sono data di inizio onboarding e flotta. "Carica esempio" compila un caso dimostrativo, "Nuovo piano" svuota tutti i campi. La lingua si sceglie dal menu in alto (IT, EN, ES, PT, DE): alla prima apertura segue la lingua del browser. I dati inseriti e la lingua restano salvati nel browser (localStorage).
