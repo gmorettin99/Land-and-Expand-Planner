@@ -17,8 +17,8 @@ window.I18N = {
     startExample: 'Parti da un esempio', heroEyebrow: 'Piano di ramp-up',
     curveAria: 'Curva del ramp-up', lin: 'Lineare', prog: 'Progressiva', packAria: 'Dimensione del pacchetto mensile',
     chartTitle: 'Dispositivi in piattaforma, mese per mese',
-    chartSub: 'La fascia chiara è la finestra di ramp-up graduale. Le barre ambra indicano i dispositivi ancora coperti anche dallo strumento attuale: dal rinnovo la sovrapposizione si azzera.',
-    lgWin: 'Finestra di ramp-up', lgClean: 'In piattaforma', lgOv: 'In sovrapposizione con MDM o EDR attuale', lgTot: 'Flotta totale',
+    chartSub: "La fascia chiara è la finestra di ramp-up graduale. In ambra i dispositivi ancora coperti anche dall'MDM attuale. La colonna verde petrolio mostra i PC ancora coperti dall'EDR attuale, solo se il pacchetto include l'EDR di Factorial. Dal rinnovo la sovrapposizione si azzera.",
+    lgWin: 'Finestra di ramp-up', lgClean: 'In piattaforma', lgOv: "In sovrapposizione con MDM attuale", lgTot: 'Flotta totale',
     planTitle: 'Piano mensile', planSub: 'Dispositivi da attivare ogni mese e a quale entità appartengono.',
 
     units: { device: ['dispositivo', 'dispositivi'], month: ['mese', 'mesi'], phone: ['cellulare', 'cellulari'] },
@@ -83,6 +83,10 @@ window.I18N = {
     priceNote: "Prezzi di listino à la carte del Quote Management Tool, per dispositivo al mese e uguali in tutti i mercati. Il canone di ogni mese copre tutti i dispositivi attivi fino a quel mese, non solo quelli nuovi. Sono esclusi i piani per dipendente e il costo di onboarding.",
     priceEmpty: "Seleziona almeno un modulo per vedere la proiezione.",
     fullRow: "Flotta completa",
+    lgOvEdr: "In sovrapposizione con EDR attuale",
+    edrSwap: "Il cliente passa all'EDR di Factorial (SentinelOne)",
+    tipEdr: function (m, n) { return m+': '+n+' PC in sovrapposizione con EDR'; },
+    edrKept: function (nm) { return nm+": resta in uso, perché l'EDR non è incluso nel pacchetto proposto. Nessuna sovrapposizione da gestire."; },
     confirmReset: 'Svuotare tutti i dati e iniziare un nuovo piano?'
   },
 
@@ -101,8 +105,8 @@ window.I18N = {
     startExample: 'Start from an example', heroEyebrow: 'Ramp-up plan',
     curveAria: 'Ramp-up curve', lin: 'Linear', prog: 'Progressive', packAria: 'Monthly batch size',
     chartTitle: 'Devices on the platform, month by month',
-    chartSub: 'The light band is the gradual ramp-up window. Amber bars show devices still covered by the current tool as well: the overlap drops to zero at renewal.',
-    lgWin: 'Ramp-up window', lgClean: 'On the platform', lgOv: 'Overlapping with current MDM or EDR', lgTot: 'Total fleet',
+    chartSub: "The light band is the gradual ramp-up window. Amber shows devices still covered by the current MDM as well. The teal column shows PCs still covered by the current EDR, only when the package includes Factorial's EDR. The overlap drops to zero at renewal.",
+    lgWin: 'Ramp-up window', lgClean: 'On the platform', lgOv: "Overlapping with current MDM", lgTot: 'Total fleet',
     planTitle: 'Monthly plan', planSub: 'Devices to activate each month and the entity they belong to.',
 
     units: { device: ['device', 'devices'], month: ['month', 'months'], phone: ['phone', 'phones'] },
@@ -167,6 +171,10 @@ window.I18N = {
     priceNote: "À la carte list prices from the Quote Management Tool, per device per month and the same in all markets. Each monthly fee covers all devices active up to that month, not just the new ones. Per-employee plans and onboarding cost are not included.",
     priceEmpty: "Select at least one module to see the projection.",
     fullRow: "Full fleet",
+    lgOvEdr: "Overlapping with current EDR",
+    edrSwap: "Customer switches to Factorial's EDR (SentinelOne)",
+    tipEdr: function (m, n) { return m+': '+n+' PCs overlapping with EDR'; },
+    edrKept: function (nm) { return nm+': stays in use, since EDR is not included in the proposed package. No overlap to manage.'; },
     confirmReset: 'Clear all data and start a new plan?'
   },
 
@@ -185,8 +193,8 @@ window.I18N = {
     startExample: 'Empezar con un ejemplo', heroEyebrow: 'Plan de ramp-up',
     curveAria: 'Curva del ramp-up', lin: 'Lineal', prog: 'Progresiva', packAria: 'Tamaño del paquete mensual',
     chartTitle: 'Dispositivos en la plataforma, mes a mes',
-    chartSub: 'La franja clara es la ventana de ramp-up gradual. Las barras ámbar indican los dispositivos que siguen cubiertos también por la herramienta actual: desde la renovación, la superposición se anula.',
-    lgWin: 'Ventana de ramp-up', lgClean: 'En la plataforma', lgOv: 'Superpuestos con el MDM o EDR actual', lgTot: 'Flota total',
+    chartSub: "La franja clara es la ventana de ramp-up gradual. En ámbar, los dispositivos que siguen cubiertos también por el MDM actual. La columna verde azulado muestra los PC que siguen cubiertos por el EDR actual, solo si el paquete incluye el EDR de Factorial. Desde la renovación, la superposición se anula.",
+    lgWin: 'Ventana de ramp-up', lgClean: 'En la plataforma', lgOv: "Superpuestos con el MDM actual", lgTot: 'Flota total',
     planTitle: 'Plan mensual', planSub: 'Dispositivos que activar cada mes y entidad a la que pertenecen.',
 
     units: { device: ['dispositivo', 'dispositivos'], month: ['mes', 'meses'], phone: ['móvil', 'móviles'] },
@@ -251,6 +259,10 @@ window.I18N = {
     priceNote: "Precios de lista a la carta del Quote Management Tool, por dispositivo y mes, iguales en todos los mercados. La cuota de cada mes cubre todos los dispositivos activos hasta ese mes, no solo los nuevos. No incluye los planes por empleado ni el coste de onboarding.",
     priceEmpty: "Selecciona al menos un módulo para ver la proyección.",
     fullRow: "Flota completa",
+    lgOvEdr: "Superpuestos con el EDR actual",
+    edrSwap: "El cliente pasa al EDR de Factorial (SentinelOne)",
+    tipEdr: function (m, n) { return m+': '+n+' PC superpuestos con el EDR'; },
+    edrKept: function (nm) { return nm+': sigue en uso, porque el EDR no está incluido en el paquete propuesto. No hay superposición que gestionar.'; },
     confirmReset: '¿Borrar todos los datos y empezar un nuevo plan?'
   },
 
@@ -269,8 +281,8 @@ window.I18N = {
     startExample: 'Começar com um exemplo', heroEyebrow: 'Plano de ramp-up',
     curveAria: 'Curva do ramp-up', lin: 'Linear', prog: 'Progressiva', packAria: 'Tamanho do pacote mensal',
     chartTitle: 'Dispositivos na plataforma, mês a mês',
-    chartSub: 'A faixa clara é a janela de ramp-up gradual. As barras âmbar indicam os dispositivos ainda cobertos também pela ferramenta atual: a partir da renovação, a sobreposição desaparece.',
-    lgWin: 'Janela de ramp-up', lgClean: 'Na plataforma', lgOv: 'Em sobreposição com o MDM ou EDR atual', lgTot: 'Frota total',
+    chartSub: "A faixa clara é a janela de ramp-up gradual. A âmbar, os dispositivos ainda cobertos também pelo MDM atual. A coluna verde-petróleo mostra os PC ainda cobertos pelo EDR atual, só se o pacote incluir o EDR da Factorial. A partir da renovação, a sobreposição desaparece.",
+    lgWin: 'Janela de ramp-up', lgClean: 'Na plataforma', lgOv: "Em sobreposição com o MDM atual", lgTot: 'Frota total',
     planTitle: 'Plano mensal', planSub: 'Dispositivos a ativar em cada mês e a entidade a que pertencem.',
 
     units: { device: ['dispositivo', 'dispositivos'], month: ['mês', 'meses'], phone: ['telemóvel', 'telemóveis'] },
@@ -335,6 +347,10 @@ window.I18N = {
     priceNote: "Preços de tabela à la carte do Quote Management Tool, por dispositivo e por mês, iguais em todos os mercados. A mensalidade de cada mês cobre todos os dispositivos ativos até esse mês, não só os novos. Não inclui os planos por funcionário nem o custo de onboarding.",
     priceEmpty: "Selecione pelo menos um módulo para ver a projeção.",
     fullRow: "Frota completa",
+    lgOvEdr: "Em sobreposição com o EDR atual",
+    edrSwap: "O cliente passa para o EDR da Factorial (SentinelOne)",
+    tipEdr: function (m, n) { return m+': '+n+' PC em sobreposição com o EDR'; },
+    edrKept: function (nm) { return nm+': continua em uso, porque o EDR não está incluído no pacote proposto. Sem sobreposição a gerir.'; },
     confirmReset: 'Apagar todos os dados e começar um novo plano?'
   },
 
@@ -353,8 +369,8 @@ window.I18N = {
     startExample: 'Mit einem Beispiel starten', heroEyebrow: 'Ramp-up-Plan',
     curveAria: 'Ramp-up-Kurve', lin: 'Linear', prog: 'Progressiv', packAria: 'Größe des Monatspakets',
     chartTitle: 'Geräte auf der Plattform, Monat für Monat',
-    chartSub: 'Der helle Bereich ist das Fenster des schrittweisen Ramp-ups. Die bernsteinfarbenen Balken zeigen Geräte, die noch zusätzlich vom aktuellen Tool abgedeckt sind: Ab der Verlängerung fällt die Überschneidung auf null.',
-    lgWin: 'Ramp-up-Fenster', lgClean: 'Auf der Plattform', lgOv: 'Überschneidung mit aktuellem MDM oder EDR', lgTot: 'Gesamtflotte',
+    chartSub: "Der helle Bereich ist das Fenster des schrittweisen Ramp-ups. Bernsteinfarben: Geräte, die noch zusätzlich vom aktuellen MDM abgedeckt sind. Die petrolfarbene Säule zeigt PCs, die noch vom aktuellen EDR abgedeckt sind, nur wenn das Paket das EDR von Factorial enthält. Ab der Verlängerung fällt die Überschneidung auf null.",
+    lgWin: 'Ramp-up-Fenster', lgClean: 'Auf der Plattform', lgOv: "Überschneidung mit aktuellem MDM", lgTot: 'Gesamtflotte',
     planTitle: 'Monatsplan', planSub: 'Geräte, die jeden Monat aktiviert werden, und die zugehörige Gesellschaft.',
 
     units: { device: ['Gerät', 'Geräte'], month: ['Monat', 'Monaten'], phone: ['Smartphone', 'Smartphones'] },
@@ -419,6 +435,10 @@ window.I18N = {
     priceNote: "À-la-carte-Listenpreise aus dem Quote Management Tool, pro Gerät und Monat, in allen Märkten gleich. Die Monatsgebühr umfasst alle bis zu diesem Monat aktiven Geräte, nicht nur die neuen. Nicht enthalten sind Pläne pro Mitarbeiter und die Onboarding-Kosten.",
     priceEmpty: "Mindestens ein Modul auswählen, um die Projektion zu sehen.",
     fullRow: "Komplette Flotte",
+    lgOvEdr: "Überschneidung mit aktuellem EDR",
+    edrSwap: "Kunde wechselt zum EDR von Factorial (SentinelOne)",
+    tipEdr: function (m, n) { return m+': '+n+' PCs mit EDR-Überschneidung'; },
+    edrKept: function (nm) { return nm+': bleibt im Einsatz, da EDR nicht im angebotenen Paket enthalten ist. Keine Überschneidung zu steuern.'; },
     confirmReset: 'Alle Daten löschen und einen neuen Plan beginnen?'
   }
 };

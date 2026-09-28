@@ -55,7 +55,10 @@
   function dn(e){ if(e.name&&e.name.trim()) return e.name; var i=st.entities.indexOf(e); return T.entity+' '+String.fromCharCode(65+(i<0?0:i)); }
   function entById(id){ for(var i=0;i<st.entities.length;i++) if(st.entities[i].id===id) return st.entities[i]; return null; }
   function entNames(ids){ var n=ids.map(function(id){ var e=entById(id); return e?dn(e):null; }).filter(Boolean); if(n.length<=1) return n.join(''); return n.slice(0,-1).join(', ')+T.and+n[n.length-1]; }
-  function activeTools(){ return st.tools.filter(function(t){ return t.on && parse(t.date) && t.ents.length; }); }
+  // L'EDR attuale conta (sovrapposizione, rinnovo) solo se il pacchetto proposto include l'EDR di Factorial.
+  function edrBought(){ return !!st.price && st.price.sec!=='none'; }
+  function toolRelevant(t){ return t.key!=='edr' || edrBought(); }
+  function activeTools(){ return st.tools.filter(function(t){ return t.on && parse(t.date) && t.ents.length && toolRelevant(t); }); }
   function toolEnd(t){ var r=frac(parse(t.date)); return Number.isInteger(r)?r:Math.floor(r)+1; } // primo mese senza lo strumento
   function toolActive(t,entId,idx){ return t.on && parse(t.date) && t.ents.indexOf(entId)>-1 && idx<frac(parse(t.date)); }
 
@@ -116,8 +119,8 @@
   }
 
   function inPlatform(sim,idx){ var s=0; st.entities.forEach(function(e){ var c=sim.cumAt(idx,e.id); s+=c.pc+c.mob; }); return s; }
-  function overlapAt(sim,idx){
-    var s=0, tools=activeTools();
+  function overlapAt(sim,idx,key){
+    var s=0, tools=activeTools().filter(function(t){ return !key||t.key===key; });
     st.entities.forEach(function(e){
       var c=sim.cumAt(idx,e.id), pcCov=false, mobCov=false;
       tools.forEach(function(t){ if(toolActive(t,e.id,idx)){ pcCov=true; if(t.scope==='both') mobCov=true; } });
@@ -181,12 +184,15 @@
         '</div>'+
         '<label class="f" style="margin-bottom:0"><span>'+esc(T.covered[t.scope])+'</span></label>'+
         '<div class="chips">'+st.entities.map(function(e){ return '<button type="button" class="chip" data-t="'+ti+'" data-chip="'+e.id+'" aria-pressed="'+(t.ents.indexOf(e.id)>-1)+'">'+esc(dn(e))+'</button>'; }).join('')+'</div>'+
+        (t.key==='edr'?'<label class="switch swap"><input type="checkbox" data-swap="1"'+(edrBought()?' checked':'')+'>'+esc(T.edrSwap)+'</label>':'')+
         '</div></div>';
     }).join('');
   }
   var toolsBox=document.getElementById('tools');
   toolsBox.addEventListener('input',function(ev){
-    var el=ev.target, ti=el.getAttribute('data-t'); if(ti===null) return;
+    var el=ev.target;
+    if(el.getAttribute('data-swap')){ st.price.sec=el.checked?(st.price.sec==='none'?'edr':st.price.sec):'none'; renderPriceOpts(); update(); return; }
+    var ti=el.getAttribute('data-t'); if(ti===null) return;
     var t=st.tools[+ti], f=el.getAttribute('data-f');
     if(f==='on'){ t.on=el.checked; el.closest('.tool').classList.toggle('off',!t.on); }
     else t[f]=el.value;
@@ -278,6 +284,7 @@
       var nm='<b>'+esc(t.name||T.toolLabel[t.key])+'</b>';
       if(!parse(t.date)){ items.push({c:'neutral',h:T.needDate(nm)}); return; }
       if(!t.ents.length){ items.push({c:'neutral',h:T.needEnts(nm)}); return; }
+      if(!toolRelevant(t)){ items.push({c:'neutral',h:T.edrKept(nm)}); return; }
       var ev=evalTool(sim,t), who=esc(entNames(t.ents)), rn=lblL(Math.floor(frac(parse(t.date))));
       if(ev.beforeStart){ items.push({c:'warn',h:T.beforeStart(nm,rn,who)}); return; }
       if(ev.met){
@@ -319,12 +326,18 @@
     if(wx2>wx) s+='<rect class="win" x="'+wx+'" y="'+mt+'" width="'+(wx2-wx)+'" height="'+(y(0)-mt)+'" rx="6"/>';
     for(var g=0;g<=4;g++){ var v=Math.round(ymax*g/4), yy=y(v); s+='<line class="grid" x1="'+ml+'" x2="'+(W-mr)+'" y1="'+yy+'" y2="'+yy+'"/><text class="ax" x="'+(ml-8)+'" y="'+(yy+4)+'" text-anchor="end">'+v+'</text>'; }
     var every=n>24?3:(n>14?2:1);
+    var showEdr=activeTools().some(function(t){ return t.key==='edr'; });
+    document.getElementById('lgEdr').hidden=!showEdr;
     for(var i=0;i<n;i++){
-      var idx=start+i, tot=inPlatform(sim,idx), ov=overlapAt(sim,idx), clean=tot-ov, cx=ml+(i+.5)*cw, bx=cx-bw/2;
+      var idx=start+i, tot=inPlatform(sim,idx), ov=overlapAt(sim,idx,'mdm'), clean=tot-ov, cx=ml+(i+.5)*cw;
+      var mw=showEdr?bw*0.66:bw, gap=showEdr?Math.max(2,bw*0.06):0, ew=showEdr?bw-mw-gap:0, bx=cx-bw/2;
       if(tot>0){
-        s+='<rect class="bar b-clean" x="'+bx+'" y="'+y(clean)+'" width="'+bw+'" height="'+(y(0)-y(clean))+'" rx="3"><title>'+esc(T.tipBar(lblL(idx),tot,ov))+'</title></rect>';
-        if(ov>0) s+='<rect class="bar b-ov" x="'+bx+'" y="'+y(tot)+'" width="'+bw+'" height="'+(y(clean)-y(tot))+'" rx="3"><title>'+esc(T.tipOv(lblL(idx),ov))+'</title></rect>';
-        if(n<=24) s+='<text class="val" x="'+cx+'" y="'+(y(tot)-5)+'" text-anchor="middle">'+tot+'</text>';
+        s+='<rect class="bar b-clean" x="'+bx+'" y="'+y(clean)+'" width="'+mw+'" height="'+(y(0)-y(clean))+'" rx="3"><title>'+esc(T.tipBar(lblL(idx),tot,ov))+'</title></rect>';
+        if(ov>0) s+='<rect class="bar b-ov" x="'+bx+'" y="'+y(tot)+'" width="'+mw+'" height="'+(y(clean)-y(tot))+'" rx="3"><title>'+esc(T.tipOv(lblL(idx),ov))+'</title></rect>';
+        if(n<=24) s+='<text class="val" x="'+(bx+mw/2)+'" y="'+(y(tot)-5)+'" text-anchor="middle">'+tot+'</text>';
+        var eo=showEdr?overlapAt(sim,idx,'edr'):0;
+        if(eo>0) s+='<rect class="bar b-edr" x="'+(bx+mw+gap)+'" y="'+y(eo)+'" width="'+ew+'" height="'+(y(0)-y(eo))+'" rx="3"><title>'+esc(T.tipEdr(lblL(idx),eo))+'</title></rect>';
+        if(eo>0&&n<=24) s+='<text class="val edr-v" x="'+(bx+mw+gap+ew/2)+'" y="'+(y(eo)-5)+'" text-anchor="middle">'+eo+'</text>';
       }
       var isClose=idx===sim.closeIdx&&sim.closing>0;
       if(i%every===0||isClose) s+='<text class="ax'+(isClose?' close':'')+'" x="'+cx+'" y="'+(Hh-mb+18)+'" text-anchor="middle">'+lbl(idx)+'</text>';
@@ -396,6 +409,7 @@
     var k=ev.target.getAttribute('data-p'); if(!k) return;
     if(k==='disc'){ var d=Math.max(0,parseFloat(ev.target.value)||0); if(d>P.maxDiscount){ d=P.maxDiscount; ev.target.value=d; } st.price.disc=d; }
     else st.price[k]=ev.target.value;
+    if(k==='sec') renderTools();
     update();
   });
   function kindAt(sim,idx){ var pc=0,mob=0; st.entities.forEach(function(e){ var c=sim.cumAt(idx,e.id); pc+=c.pc; mob+=c.mob; }); return {pc:pc,mob:mob}; }
