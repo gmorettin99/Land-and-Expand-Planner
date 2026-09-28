@@ -195,3 +195,10 @@ svg .b-edr{fill:var(--edr)}
 .legend [hidden]{display:none}
 .switch.swap{display:flex;margin:2px 0 10px;font-weight:500;color:var(--ink)}
 svg .val.edr-v{fill:var(--edr);font-weight:600}
+.price-opts .wide{grid-column:span 2}
+@media (max-width:560px){.price-opts .wide{grid-column:auto}}
+.price-opts .addons > span{display:block;font-size:12.5px;color:var(--ink2);margin-bottom:4px}
+.price-opts .addons .chips{margin:0}
+.chip:disabled{cursor:default;opacity:.75}
+.price-opts .addons{grid-column:1/-1}
+#priceTable td.who{white-space:nowrap}
