@@ -27,6 +27,7 @@
   function blank(){
     return {
       today: todayISO(), ob:'', setup:'', pilot:'', cap:3, pct:10, curve:'lin', order:'free',
+      price:{open:false,pc:'lap',mob:'mob',sec:'none',disc:0,bill:'m'},
       entities:[{id:uid(),name:'',pc:0,mob:0}],
       tools:[
         {key:'mdm',label:'MDM attuale',scope:'both',on:false,name:'',date:'',ents:[]},
@@ -36,6 +37,7 @@
   }
   function example(){
     return {
+      price:{open:false,pc:'lap',mob:'mob',sec:'edr',disc:0,bill:'m'},
       today: todayISO(), ob:'2026-11-01', setup:2, pilot:25, cap:3, pct:10, curve:'lin', order:'free',
       entities:[{id:'a',name:T.entity+' A',pc:60,mob:20},{id:'b',name:T.entity+' B',pc:40,mob:15}],
       tools:[
@@ -206,7 +208,7 @@
   function load(next){
     st=next;
     document.querySelectorAll('[data-k]').forEach(function(el){ el.value=st[el.getAttribute('data-k')]; });
-    renderEnts(); renderTools(); update();
+    renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); update();
   }
   document.getElementById('reset').addEventListener('click',function(){
     if(isReady()&&!confirm(T.confirmReset)) return;
@@ -298,6 +300,7 @@
 
     drawChart(sim);
     drawPlan(sim);
+    drawPrice(sim);
   }
 
   function drawChart(sim){
@@ -365,6 +368,60 @@
     document.getElementById('plan').innerHTML='<table class="plan"><thead><tr><th>'+T.planH[0]+'</th><th>'+T.planH[1]+'</th><th class="n">'+T.planH[2]+'</th><th class="n">'+T.planH[3]+'</th><th class="n">'+T.planH[4]+'</th><th>'+T.planH[5]+'</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
+  /* ---------- Proiezione a prezzo di listino ---------- */
+  var P=window.PRICING;
+  function money(v){ return new Intl.NumberFormat(T.locale,{style:'currency',currency:P.currency,maximumFractionDigits:2,minimumFractionDigits:2}).format(v); }
+  function unitPrices(){
+    var pr=st.price;
+    return {pc:(P.pc[pr.pc]||0)+(pr.sec==='edr'?P.sec.edr:0)+(pr.sec==='mdr'?P.sec.edr+P.sec.mdr:0), mob:P.mob[pr.mob]||0,
+      mult:(1-Math.min(P.maxDiscount,Math.max(0,+pr.disc||0))/100)*(pr.bill==='y'?P.annualFactor:1)};
+  }
+  function opt(v,label,price,cur){ return '<option value="'+v+'"'+(v===cur?' selected':'')+'>'+esc(label)+(price?' · '+esc(money(price).replace(/[.,]00(?=\D|$)/,''))+' '+esc(T.perDev):'')+'</option>'; }
+  function renderPriceOpts(){
+    var pr=st.price;
+    document.getElementById('priceOpts').innerHTML=
+      '<label class="f"><span>'+esc(T.optPc)+'</span><select data-p="pc">'+opt('lap',T.modLap,P.pc.lap,pr.pc)+opt('intune',T.modIntune,P.pc.intune,pr.pc)+opt('none',T.noneOpt,0,pr.pc)+'</select></label>'+
+      '<label class="f"><span>'+esc(T.optMob)+'</span><select data-p="mob">'+opt('mob',T.modMob,P.mob.mob,pr.mob)+opt('none',T.noneOpt,0,pr.mob)+'</select></label>'+
+      '<label class="f"><span>'+esc(T.optSec)+'</span><select data-p="sec">'+opt('none',T.noneOpt,0,pr.sec)+opt('edr',T.modEdr,P.sec.edr,pr.sec)+opt('mdr',T.modMdr,P.sec.edr+P.sec.mdr,pr.sec)+'</select></label>'+
+      '<label class="f"><span>'+esc(T.optDisc)+'</span><input type="number" min="0" max="'+P.maxDiscount+'" placeholder="0" data-p="disc" value="'+(pr.disc||'')+'"></label>'+
+      '<label class="f"><span>'+esc(T.optBill)+'</span><select data-p="bill">'+opt('m',T.billM,0,pr.bill)+opt('y',T.billY,0,pr.bill)+'</select></label>';
+  }
+  function syncPriceToggle(){
+    var b=document.getElementById('priceToggle'), open=!!st.price.open;
+    b.textContent=open?T.priceHide:T.priceShow; b.setAttribute('aria-expanded',String(open));
+    document.getElementById('priceBody').hidden=!open;
+  }
+  document.getElementById('priceToggle').addEventListener('click',function(){ st.price.open=!st.price.open; syncPriceToggle(); update(); });
+  document.getElementById('priceOpts').addEventListener('input',function(ev){
+    var k=ev.target.getAttribute('data-p'); if(!k) return;
+    if(k==='disc'){ var d=Math.max(0,parseFloat(ev.target.value)||0); if(d>P.maxDiscount){ d=P.maxDiscount; ev.target.value=d; } st.price.disc=d; }
+    else st.price[k]=ev.target.value;
+    update();
+  });
+  function kindAt(sim,idx){ var pc=0,mob=0; st.entities.forEach(function(e){ var c=sim.cumAt(idx,e.id); pc+=c.pc; mob+=c.mob; }); return {pc:pc,mob:mob}; }
+  function drawPrice(sim){
+    if(!st.price.open) return;
+    var u=unitPrices(), F=document.getElementById('priceFacts'), TB=document.getElementById('priceTable');
+    if(u.pc===0&&u.mob===0){ F.innerHTML=''; TB.innerHTML='<div class="empty">'+esc(T.priceEmpty)+'</div>'; return; }
+    function cost(k){ return {pc:k.pc*u.pc*u.mult, mob:k.mob*u.mob*u.mult}; }
+    var full=cost({pc:sim.totPC,mob:sim.totMob}), fullTot=full.pc+full.mob;
+    var cum=0, rampCost=0, y1=0, rows=[];
+    for(var i=sim.obIdx;i<=Math.max(sim.obIdx+11,sim.completion);i++){
+      var k=kindAt(sim,i), c=cost(k), t=c.pc+c.mob; if(i<sim.obIdx+12) y1+=t;
+      if(i<=sim.completion){
+        cum+=t; rampCost+=t;
+        rows.push('<tr'+(i===sim.completion?' class="full"':'')+'><td>'+lblL(i)+(i===sim.completion?' <span class="tag">'+esc(T.fullRow)+'</span>':'')+'</td><td class="n">'+k.pc+'</td><td class="n">'+k.mob+'</td><td class="n">'+money(c.pc)+'</td><td class="n">'+money(c.mob)+'</td><td class="n"><b>'+money(t)+'</b></td><td class="n">'+money(cum)+'</td></tr>');
+      }
+    }
+    var save=fullTot*12-y1;
+    F.innerHTML='<div><dt>'+esc(T.pf.full)+'</dt><dd>'+money(fullTot)+'</dd></div>'+
+      '<div><dt>'+esc(T.pf.ramp)+'</dt><dd>'+money(rampCost)+'</dd></div>'+
+      '<div><dt>'+esc(T.pf.y1)+'</dt><dd>'+money(y1)+'</dd></div>'+
+      '<div><dt>'+esc(T.pf.save)+'</dt><dd class="good">'+money(save)+'</dd></div>';
+    var H=T.priceH;
+    TB.innerHTML='<table class="plan"><thead><tr><th>'+H[0]+'</th><th class="n">'+H[1]+'</th><th class="n">'+H[2]+'</th><th class="n">'+H[3]+'</th><th class="n">'+H[4]+'</th><th class="n">'+H[5]+'</th><th class="n">'+H[6]+'</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+  }
+
   function applyStatic(){
     document.documentElement.lang=lang;
     document.title=T.title;
@@ -378,8 +435,8 @@
     var defaultName=new RegExp('^('+LANGS.map(function(l){ return window.I18N[l].entity; }).join('|')+') ([A-Z])$');
     st.entities.forEach(function(e){ var m=defaultName.exec(e.name||''); if(m) e.name=T.entity+' '+m[2]; });
     try{ localStorage.setItem(LANG_KEY,lang); }catch(e){}
-    applyStatic(); renderEnts(); renderTools(); update();
+    applyStatic(); renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); update();
   });
 
-  applyStatic(); bindSimple(); renderEnts(); renderTools(); update();
+  applyStatic(); bindSimple(); renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); update();
 })();
