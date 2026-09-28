@@ -410,7 +410,8 @@
       var k=kindAt(sim,i), c=cost(k), t=c.pc+c.mob; if(i<sim.obIdx+12) y1+=t;
       if(i<=sim.completion){
         cum+=t; rampCost+=t;
-        rows.push('<tr'+(i===sim.completion?' class="full"':'')+'><td>'+lblL(i)+(i===sim.completion?' <span class="tag">'+esc(T.fullRow)+'</span>':'')+'</td><td class="n">'+k.pc+'</td><td class="n">'+k.mob+'</td><td class="n">'+money(c.pc)+'</td><td class="n">'+money(c.mob)+'</td><td class="n"><b>'+money(t)+'</b></td><td class="n">'+money(cum)+'</td></tr>');
+        var mo=sim.months[i-sim.obIdx], added=mo?mo.sum:0;
+        rows.push('<tr'+(i===sim.completion?' class="full"':'')+'><td>'+lblL(i)+(i===sim.completion?' <span class="tag">'+esc(T.fullRow)+'</span>':'')+'</td><td class="n new">'+(added?'+'+added:'–')+'</td><td class="n">'+k.pc+'</td><td class="n">'+k.mob+'</td><td class="n">'+money(c.pc)+'</td><td class="n">'+money(c.mob)+'</td><td class="n"><b>'+money(t)+'</b></td><td class="n">'+money(cum)+'</td></tr>');
       }
     }
     var save=fullTot*12-y1;
@@ -419,7 +420,7 @@
       '<div><dt>'+esc(T.pf.y1)+'</dt><dd>'+money(y1)+'</dd></div>'+
       '<div><dt>'+esc(T.pf.save)+'</dt><dd class="good">'+money(save)+'</dd></div>';
     var H=T.priceH;
-    TB.innerHTML='<table class="plan"><thead><tr><th>'+H[0]+'</th><th class="n">'+H[1]+'</th><th class="n">'+H[2]+'</th><th class="n">'+H[3]+'</th><th class="n">'+H[4]+'</th><th class="n">'+H[5]+'</th><th class="n">'+H[6]+'</th></tr></thead><tbody>'+rows.join('')+'</tbody></table>';
+    TB.innerHTML='<table class="plan"><thead><tr><th>'+H[0]+'</th>'+H.slice(1).map(function(h){ return '<th class="n">'+h+'</th>'; }).join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
   function applyStatic(){
