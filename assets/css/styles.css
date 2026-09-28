@@ -189,3 +189,4 @@ input::placeholder{color:var(--muted);opacity:.7}
 .facts dd.good{color:var(--ok)}
 table.plan tr.full td{font-weight:600;background:var(--tint1)}
 .price-note{margin-top:10px}
+table.plan td.new{color:var(--muted)}
