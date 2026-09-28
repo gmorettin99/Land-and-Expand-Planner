@@ -8,6 +8,7 @@ Tool interattivo per proporre al cliente un ramp-up graduale su Factorial IT. Mo
 index.html                         pagina del tool
 assets/css/styles.css              stile (palette rossa Factorial della mappa ecosistema, DM Sans)
 assets/js/app.js                   logica di calcolo e rendering
+assets/js/i18n.js                  testi in italiano, inglese, spagnolo, portoghese e tedesco
 assets/img/factorial-it-logo.png   logo Factorial IT
 ```
 
@@ -22,7 +23,7 @@ Nessuna dipendenza e nessun build: basta aprire `index.html` nel browser o pubbl
 - **Strumenti attuali**: l'MDM conta PC e cellulari, l'EDR solo i PC. Lo strumento si considera dismesso alla data di rinnovo.
 - **Ordine di migrazione**: si può partire dalle entità senza strumenti, da quelle con il rinnovo più vicino, oppure seguire l'ordine della lista.
 
-Il tool si apre vuoto: si inseriscono i dati del cliente e il piano compare appena ci sono data di inizio onboarding e flotta. "Carica esempio" compila un caso dimostrativo, "Nuovo piano" svuota tutti i campi. I dati inseriti restano salvati nel browser (localStorage).
+Il tool si apre vuoto: si inseriscono i dati del cliente e il piano compare appena ci sono data di inizio onboarding e flotta. "Carica esempio" compila un caso dimostrativo, "Nuovo piano" svuota tutti i campi. La lingua si sceglie dal menu in alto (IT, EN, ES, PT, DE): alla prima apertura segue la lingua del browser. I dati inseriti e la lingua restano salvati nel browser (localStorage).
 
 ## Avvio su Git
 

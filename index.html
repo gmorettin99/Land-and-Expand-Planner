@@ -8,52 +8,64 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/styles.css?v=3">
+<link rel="stylesheet" href="assets/css/styles.css?v=4">
 </head>
 <body>
 <header class="top">
   <img class="logo" src="assets/img/factorial-it-logo.png" alt="Factorial IT" width="162" height="28">
-  <div class="top-actions"><button class="reset" id="example" type="button">Carica esempio</button><button class="reset" id="reset" type="button">Nuovo piano</button></div>
+  <div class="top-actions">
+    <label class="lang"><span class="sr" data-i18n="langLabel">Lingua</span>
+      <select id="lang">
+        <option value="it">IT · Italiano</option>
+        <option value="en">EN · English</option>
+        <option value="es">ES · Español</option>
+        <option value="pt">PT · Português</option>
+        <option value="de">DE · Deutsch</option>
+      </select>
+    </label>
+    <button class="reset" id="example" type="button" data-i18n="example">Carica esempio</button>
+    <button class="reset" id="reset" type="button" data-i18n="newPlan">Nuovo piano</button>
+  </div>
 </header>
 
 <div class="wrap">
-  <aside aria-label="Dati di partenza">
+  <aside aria-label="Dati di partenza" data-i18n-aria="inputsAria">
     <div class="group">
-      <p class="eyebrow">Tempistiche</p>
+      <p class="eyebrow" data-i18n="timing">Tempistiche</p>
       <div class="row2">
-        <label class="f"><span>Data attuale</span><input type="date" data-k="today"></label>
-        <label class="f"><span>Inizio onboarding</span><input type="date" data-k="ob"></label>
+        <label class="f"><span data-i18n="today">Data attuale</span><input type="date" data-k="today"></label>
+        <label class="f"><span data-i18n="ob">Inizio onboarding</span><input type="date" data-k="ob"></label>
       </div>
       <div class="row3">
-        <label class="f"><span>Mesi di set up</span><input type="number" min="0" max="12" placeholder="0" data-k="setup"></label>
-        <label class="f"><span>Pacchetto iniziale</span><input type="number" min="0" placeholder="0" data-k="pilot"></label>
-        <label class="f"><span>Mesi di ramp-up</span><input type="number" min="1" max="12" data-k="cap"></label>
+        <label class="f"><span data-i18n="setup">Mesi di set up</span><input type="number" min="0" max="12" placeholder="0" data-k="setup"></label>
+        <label class="f"><span data-i18n="pilot">Pacchetto iniziale</span><input type="number" min="0" placeholder="0" data-k="pilot"></label>
+        <label class="f"><span data-i18n="cap">Mesi di ramp-up</span><input type="number" min="1" max="12" data-k="cap"></label>
       </div>
-      <p class="hint">La durata del ramp-up si conta in mesi dall'inizio onboarding, set up incluso. Il mese successivo entra tutta la flotta rimanente.</p>
+      <p class="hint" data-i18n="hint">La durata del ramp-up si conta in mesi dall'inizio onboarding, set up incluso. Il mese successivo entra tutta la flotta rimanente.</p>
     </div>
 
     <div class="group">
-      <p class="eyebrow">Flotta per entità</p>
+      <p class="eyebrow" data-i18n="fleet">Flotta per entità</p>
       <table class="ents">
-        <thead><tr><th>Entità</th><th class="n">PC</th><th class="n">Cellulari</th><th></th></tr></thead>
+        <thead><tr><th data-i18n="entity">Entità</th><th class="n" data-i18n="pc">PC</th><th class="n" data-i18n="mob">Cellulari</th><th></th></tr></thead>
         <tbody id="entRows"></tbody>
-        <tfoot><tr><td>Totale</td><td class="n" id="totPC"></td><td class="n" id="totMob"></td><td></td></tr></tfoot>
+        <tfoot><tr><td data-i18n="total">Totale</td><td class="n" id="totPC"></td><td class="n" id="totMob"></td><td></td></tr></tfoot>
       </table>
-      <button class="add" id="addEnt" type="button">Aggiungi entità</button>
+      <button class="add" id="addEnt" type="button" data-i18n="addEntity">Aggiungi entità</button>
     </div>
 
     <div class="group">
-      <p class="eyebrow">Strumenti attuali</p>
+      <p class="eyebrow" data-i18n="tools">Strumenti attuali</p>
       <div id="tools"></div>
     </div>
 
     <div class="group">
-      <p class="eyebrow">Ordine di migrazione</p>
-      <label class="f"><span>Quale entità entra per prima</span>
+      <p class="eyebrow" data-i18n="order">Ordine di migrazione</p>
+      <label class="f"><span data-i18n="orderQ">Quale entità entra per prima</span>
         <select data-k="order">
-          <option value="free">Prima le entità senza strumenti attuali</option>
-          <option value="soon">Prima le entità con il rinnovo più vicino</option>
-          <option value="list">Nell'ordine della lista</option>
+          <option value="free" data-i18n="orderFree">Prima le entità senza strumenti attuali</option>
+          <option value="soon" data-i18n="orderSoon">Prima le entità con il rinnovo più vicino</option>
+          <option value="list" data-i18n="orderList">Nell'ordine della lista</option>
         </select>
       </label>
     </div>
@@ -61,52 +73,53 @@
 
   <main class="is-empty">
     <section class="start" aria-labelledby="startTitle">
-      <p class="eyebrow">Nuovo piano di ramp-up</p>
-      <h1 id="startTitle">Configura il piano del cliente</h1>
-      <p class="lead">Compila i dati a sinistra. Il piano, il grafico e il calendario mese per mese compaiono appena ci sono data di avvio e flotta.</p>
+      <p class="eyebrow" data-i18n="startEyebrow">Nuovo piano di ramp-up</p>
+      <h1 id="startTitle" data-i18n="startTitle">Configura il piano del cliente</h1>
+      <p class="lead" data-i18n="startLead">Compila i dati a sinistra. Il piano, il grafico e il calendario mese per mese compaiono appena ci sono data di avvio e flotta.</p>
       <ol class="steps" id="steps"></ol>
-      <button class="ghost" id="example2" type="button">Parti da un esempio</button>
+      <button class="ghost" id="example2" type="button" data-i18n="startExample">Parti da un esempio</button>
     </section>
 
     <div class="res">
     <section class="hero">
-      <p class="eyebrow">Piano di ramp-up</p>
+      <p class="eyebrow" data-i18n="heroEyebrow">Piano di ramp-up</p>
       <h1 id="headline"></h1>
       <ul class="verdicts" id="verdicts"></ul>
     </section>
 
     <div class="controls">
-      <div class="curve" id="curve" role="group" aria-label="Curva del ramp-up">
-        <button type="button" data-c="lin">Lineare</button>
-        <button type="button" data-c="prog">Progressiva</button>
+      <div class="curve" id="curve" role="group" aria-label="Curva del ramp-up" data-i18n-aria="curveAria">
+        <button type="button" data-c="lin" data-i18n="lin">Lineare</button>
+        <button type="button" data-c="prog" data-i18n="prog">Progressiva</button>
       </div>
       <p class="curve-cap" id="curveCap"></p>
     </div>
-    <div class="pack" id="pack" role="group" aria-label="Dimensione del pacchetto mensile"></div>
+    <div class="pack" id="pack" role="group" aria-label="Dimensione del pacchetto mensile" data-i18n-aria="packAria"></div>
 
     <dl class="facts" id="facts"></dl>
 
     <section class="card">
-      <h3 class="title">Dispositivi in piattaforma, mese per mese</h3>
-      <p class="sub">La fascia chiara è la finestra di ramp-up graduale. Le barre ambra indicano i dispositivi ancora coperti anche dallo strumento attuale: dal rinnovo la sovrapposizione si azzera.</p>
+      <h3 class="title" data-i18n="chartTitle">Dispositivi in piattaforma, mese per mese</h3>
+      <p class="sub" data-i18n="chartSub">La fascia chiara è la finestra di ramp-up graduale. Le barre ambra indicano i dispositivi ancora coperti anche dallo strumento attuale: dal rinnovo la sovrapposizione si azzera.</p>
       <div class="legend">
-        <span><i class="sw win"></i>Finestra di ramp-up</span>
-        <span><i class="sw clean"></i>In piattaforma</span>
-        <span><i class="sw ov"></i>In sovrapposizione con MDM o EDR attuale</span>
-        <span><i class="sw line"></i>Flotta totale</span>
+        <span><i class="sw win"></i><span data-i18n="lgWin">Finestra di ramp-up</span></span>
+        <span><i class="sw clean"></i><span data-i18n="lgClean">In piattaforma</span></span>
+        <span><i class="sw ov"></i><span data-i18n="lgOv">In sovrapposizione con MDM o EDR attuale</span></span>
+        <span><i class="sw line"></i><span data-i18n="lgTot">Flotta totale</span></span>
       </div>
       <div class="scroll" id="chart"></div>
     </section>
 
     <section class="card">
-      <h3 class="title">Piano mensile</h3>
-      <p class="sub">Dispositivi da attivare ogni mese e a quale entità appartengono.</p>
+      <h3 class="title" data-i18n="planTitle">Piano mensile</h3>
+      <p class="sub" data-i18n="planSub">Dispositivi da attivare ogni mese e a quale entità appartengono.</p>
       <div class="scroll" id="plan"></div>
     </section>
     </div>
   </main>
 </div>
 
-<script src="assets/js/app.js?v=3"></script>
+<script src="assets/js/i18n.js?v=4"></script>
+<script src="assets/js/app.js?v=4"></script>
 </body>
 </html>
