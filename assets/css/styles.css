@@ -2,7 +2,7 @@
 :root{
   --paper:#ffffff; --bg:#fbf7f8; --ink:#25253d; --ink2:#515164; --muted:#7e7e97; --line:#ece6e9;
   --brand:#ff355e; --brand-deep:#e51943; --tint1:#ffe2e8; --tint2:#ffc4d0; --accent:#ff8fa6; --ink-deep:#25253d;
-  --amber:#efa02a; --amber-soft:#fdf0d9; --field:#ffffff; --ok:#15936d; --ok-on-dark:#7fe0bd;
+  --amber:#efa02a; --amber-soft:#fdf0d9; --field:#ffffff; --ok:#15936d; --ok-on-dark:#7fe0bd; --edr:#06838c;
   --radius:16px;
   box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
@@ -10,14 +10,14 @@
   :root:not([data-theme="light"]){
     --paper:#1b181d; --bg:#121015; --ink:#f2eef0; --ink2:#c7bfc4; --muted:#968c93; --line:#2e272c;
     --brand:#ff4f73; --brand-deep:#ff8fa6; --tint1:#3b1520; --tint2:#5c1f30; --accent:#ff8fa6; --ink-deep:#4a0a1e;
-    --amber:#f0b04a; --amber-soft:#3a2d14; --field:#221e24; --ok:#4fcaa0; --ok-on-dark:#8fe9c6;
+    --amber:#f0b04a; --amber-soft:#3a2d14; --field:#221e24; --ok:#4fcaa0; --ok-on-dark:#8fe9c6; --edr:#2bb3bd;
   }
   :root:not([data-theme="light"]) .logo{filter:invert(1) brightness(1.6)}
 }
 :root[data-theme="dark"]{
   --paper:#1b181d; --bg:#121015; --ink:#f2eef0; --ink2:#c7bfc4; --muted:#968c93; --line:#2e272c;
     --brand:#ff4f73; --brand-deep:#ff8fa6; --tint1:#3b1520; --tint2:#5c1f30; --accent:#ff8fa6; --ink-deep:#4a0a1e;
-    --amber:#f0b04a; --amber-soft:#3a2d14; --field:#221e24; --ok:#4fcaa0; --ok-on-dark:#8fe9c6;
+    --amber:#f0b04a; --amber-soft:#3a2d14; --field:#221e24; --ok:#4fcaa0; --ok-on-dark:#8fe9c6; --edr:#2bb3bd;
 }
 :root[data-theme="dark"] .logo{filter:invert(1) brightness(1.6)}
 
@@ -190,3 +190,8 @@ input::placeholder{color:var(--muted);opacity:.7}
 table.plan tr.full td{font-weight:600;background:var(--tint1)}
 .price-note{margin-top:10px}
 table.plan td.new{color:var(--muted)}
+.sw.edr{background:var(--edr)}
+svg .b-edr{fill:var(--edr)}
+.legend [hidden]{display:none}
+.switch.swap{display:flex;margin:2px 0 10px;font-weight:500;color:var(--ink)}
+svg .val.edr-v{fill:var(--edr);font-weight:600}
