@@ -1,7 +1,7 @@
 /* Piano di ramp-up Factorial IT */
 (function(){
   'use strict';
-  var KEY = 'fit-rampup-v2';
+  var KEY = 'fit-rampup-v3';
   var MESI = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
   var MESI_L = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
   var PACKS = [10,15,20];
@@ -20,7 +20,17 @@
   function plural(n,one,many){ return n+' '+(n===1?one:many); }
 
   /* ---------- Stato ---------- */
-  function defaults(){
+  function blank(){
+    return {
+      today: todayISO(), ob:'', setup:'', pilot:'', cap:3, pct:10, curve:'lin', order:'free',
+      entities:[{id:uid(),name:'',pc:0,mob:0}],
+      tools:[
+        {key:'mdm',label:'MDM attuale',scope:'both',on:false,name:'',date:'',ents:[]},
+        {key:'edr',label:'EDR attuale',scope:'pc',on:false,name:'',date:'',ents:[]}
+      ]
+    };
+  }
+  function example(){
     return {
       today: todayISO(), ob:'2026-11-01', setup:2, pilot:25, cap:3, pct:10, curve:'lin', order:'free',
       entities:[{id:'a',name:'Entità A',pc:60,mob:20},{id:'b',name:'Entità B',pc:40,mob:15}],
@@ -32,12 +42,13 @@
   }
   var st;
   try{ var raw=localStorage.getItem(KEY); st=raw?JSON.parse(raw):null; }catch(e){ st=null; }
-  if(!st||!st.entities||!st.tools) st=defaults();
-  var dflt=defaults(); Object.keys(dflt).forEach(function(k){ if(st[k]===undefined) st[k]=dflt[k]; });
+  if(!st||!st.entities||!st.tools) st=blank();
+  var dflt=blank(); Object.keys(dflt).forEach(function(k){ if(st[k]===undefined) st[k]=dflt[k]; });
   function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
 
+  function dn(e){ if(e.name&&e.name.trim()) return e.name; var i=st.entities.indexOf(e); return 'Entità '+String.fromCharCode(65+(i<0?0:i)); }
   function entById(id){ for(var i=0;i<st.entities.length;i++) if(st.entities[i].id===id) return st.entities[i]; return null; }
-  function entNames(ids){ var n=ids.map(function(id){ var e=entById(id); return e?e.name:null; }).filter(Boolean); if(n.length<=1) return n.join(''); return n.slice(0,-1).join(', ')+' e '+n[n.length-1]; }
+  function entNames(ids){ var n=ids.map(function(id){ var e=entById(id); return e?dn(e):null; }).filter(Boolean); if(n.length<=1) return n.join(''); return n.slice(0,-1).join(', ')+' e '+n[n.length-1]; }
   function activeTools(){ return st.tools.filter(function(t){ return t.on && parse(t.date) && t.ents.length; }); }
   function toolEnd(t){ var r=frac(parse(t.date)); return Number.isInteger(r)?r:Math.floor(r)+1; } // primo mese senza lo strumento
   function toolActive(t,entId,idx){ return t.on && parse(t.date) && t.ents.indexOf(entId)>-1 && idx<frac(parse(t.date)); }
@@ -129,10 +140,10 @@
   }
   function renderEnts(){
     document.getElementById('entRows').innerHTML=st.entities.map(function(e){
-      return '<tr><td><input type="text" aria-label="Nome entità" data-ent="'+e.id+'" data-f="name" value="'+esc(e.name)+'"></td>'+
-        '<td><input type="number" min="0" aria-label="PC di '+esc(e.name)+'" data-ent="'+e.id+'" data-f="pc" value="'+e.pc+'"></td>'+
-        '<td><input type="number" min="0" aria-label="Cellulari di '+esc(e.name)+'" data-ent="'+e.id+'" data-f="mob" value="'+e.mob+'"></td>'+
-        '<td>'+(st.entities.length>1?'<button class="x" type="button" aria-label="Rimuovi '+esc(e.name)+'" data-del="'+e.id+'">&times;</button>':'')+'</td></tr>';
+      return '<tr><td><input type="text" aria-label="Nome entità" placeholder="'+esc(dn(Object.assign({},e,{name:''})))+'" data-ent="'+e.id+'" data-f="name" value="'+esc(e.name)+'"></td>'+
+        '<td><input type="number" min="0" aria-label="PC di '+esc(dn(e))+'" placeholder="0" data-ent="'+e.id+'" data-f="pc" value="'+(e.pc||'')+'"></td>'+
+        '<td><input type="number" min="0" aria-label="Cellulari di '+esc(dn(e))+'" placeholder="0" data-ent="'+e.id+'" data-f="mob" value="'+(e.mob||'')+'"></td>'+
+        '<td>'+(st.entities.length>1?'<button class="x" type="button" aria-label="Rimuovi '+esc(dn(e))+'" data-del="'+e.id+'">&times;</button>':'')+'</td></tr>';
     }).join('');
   }
   var entRows=document.getElementById('entRows');
@@ -150,7 +161,7 @@
     renderEnts(); renderTools(); update();
   });
   document.getElementById('addEnt').addEventListener('click',function(){
-    st.entities.push({id:uid(),name:'Entità '+String.fromCharCode(65+st.entities.length),pc:0,mob:0});
+    st.entities.push({id:uid(),name:'',pc:0,mob:0});
     renderEnts(); renderTools(); update();
   });
 
@@ -159,11 +170,11 @@
       return '<div class="tool'+(t.on?'':' off')+'">'+
         '<div class="tool-head"><strong>'+t.label+'</strong><label class="switch"><input type="checkbox" data-t="'+ti+'" data-f="on"'+(t.on?' checked':'')+'>Presente</label></div>'+
         '<div class="tool-body"><div class="row2">'+
-          '<label class="f"><span>Nome</span><input type="text" data-t="'+ti+'" data-f="name" value="'+esc(t.name)+'"></label>'+
+          '<label class="f"><span>Nome</span><input type="text" placeholder="'+(t.key==='mdm'?'Es. Intune, Jamf':'Es. SentinelOne, CrowdStrike')+'" data-t="'+ti+'" data-f="name" value="'+esc(t.name)+'"></label>'+
           '<label class="f"><span>Data di rinnovo</span><input type="date" data-t="'+ti+'" data-f="date" value="'+esc(t.date)+'"></label>'+
         '</div>'+
         '<label class="f" style="margin-bottom:0"><span>Entità coperte'+(t.scope==='pc'?', solo PC':', PC e cellulari')+'</span></label>'+
-        '<div class="chips">'+st.entities.map(function(e){ return '<button type="button" class="chip" data-t="'+ti+'" data-chip="'+e.id+'" aria-pressed="'+(t.ents.indexOf(e.id)>-1)+'">'+esc(e.name)+'</button>'; }).join('')+'</div>'+
+        '<div class="chips">'+st.entities.map(function(e){ return '<button type="button" class="chip" data-t="'+ti+'" data-chip="'+e.id+'" aria-pressed="'+(t.ents.indexOf(e.id)>-1)+'">'+esc(dn(e))+'</button>'; }).join('')+'</div>'+
         '</div></div>';
     }).join('');
   }
@@ -188,11 +199,18 @@
   document.getElementById('curve').addEventListener('click',function(ev){
     var b=ev.target.closest('button'); if(!b) return; st.curve=b.getAttribute('data-c'); update();
   });
-  document.getElementById('reset').addEventListener('click',function(){
-    st=defaults(); try{ localStorage.removeItem(KEY); }catch(e){}
+  function load(next){
+    st=next;
     document.querySelectorAll('[data-k]').forEach(function(el){ el.value=st[el.getAttribute('data-k')]; });
     renderEnts(); renderTools(); update();
+  }
+  document.getElementById('reset').addEventListener('click',function(){
+    if(isReady()&&!confirm('Svuotare tutti i dati e iniziare un nuovo piano?')) return;
+    load(blank());
   });
+  document.getElementById('example').addEventListener('click',function(){ load(example()); });
+  document.getElementById('example2').addEventListener('click',function(){ load(example()); });
+  function isReady(){ var t=0; st.entities.forEach(function(e){ t+=e.pc+e.mob; }); return !!parse(st.ob)&&t>0; }
 
   /* ---------- Output ---------- */
   function update(){
@@ -207,11 +225,17 @@
 
     var sim=simulate(st.pct,st.curve);
     var H=document.getElementById('headline'), V=document.getElementById('verdicts');
-    if(!sim||sim.tot===0){
-      H.textContent=!sim?'Inserisci la data di inizio onboarding per vedere il piano.':'Inserisci il numero di PC e cellulari per entità.';
-      V.innerHTML=''; document.getElementById('pack').innerHTML=''; document.getElementById('facts').innerHTML='';
-      document.getElementById('chart').innerHTML='<div class="empty">Il grafico compare quando la flotta è compilata.</div>';
-      document.getElementById('plan').innerHTML=''; return;
+    var ready=!!sim&&sim.tot>0;
+    document.querySelector('main').classList.toggle('is-empty',!ready);
+    if(!ready){
+      var anyTool=st.tools.some(function(t){ return t.on&&parse(t.date)&&t.ents.length; });
+      var steps=[
+        {d:!!parse(st.ob),t:'Tempistiche',s:'Data di inizio onboarding, mesi di set up e pacchetto iniziale.'},
+        {d:totPC+totMob>0,t:'Flotta per entità',s:'Numero di PC e cellulari per ogni entità del cliente.'},
+        {d:anyTool,t:'Strumenti attuali (facoltativo)',s:'MDM ed EDR in uso, con data di rinnovo ed entità coperte.'}
+      ];
+      document.getElementById('steps').innerHTML=steps.map(function(x){ return '<li'+(x.d?' class="done"':'')+'><div><b>'+x.t+'</b><span>'+x.s+'</span></div></li>'; }).join('');
+      return;
     }
 
     // Selettore pacchetto
@@ -330,7 +354,7 @@
     var ends={}; activeTools().forEach(function(t){ var e=toolEnd(t); (ends[e]=ends[e]||[]).push(t.name||t.label); });
     var rows=sim.months.map(function(m){
       var pc=0,mob=0,who=[];
-      st.entities.forEach(function(e){ var a=m.add[e.id]; if(!a) return; pc+=a.pc; mob+=a.mob; if(a.pc||a.mob){ var parts=[]; if(a.pc) parts.push(a.pc+' PC'); if(a.mob) parts.push(plural(a.mob,'cellulare','cellulari')); who.push(esc(e.name)+': '+parts.join(', ')); } });
+      st.entities.forEach(function(e){ var a=m.add[e.id]; if(!a) return; pc+=a.pc; mob+=a.mob; if(a.pc||a.mob){ var parts=[]; if(a.pc) parts.push(a.pc+' PC'); if(a.mob) parts.push(plural(a.mob,'cellulare','cellulari')); who.push(esc(dn(e))+': '+parts.join(', ')); } });
       var tag;
       if(m.phase==='close') tag='<span class="tag close">Chiusura</span>';
       else if(m.phase==='setup') tag='<span class="tag setup">Set up</span>';
