@@ -405,13 +405,19 @@
     if(u.pc===0&&u.mob===0){ F.innerHTML=''; TB.innerHTML='<div class="empty">'+esc(T.priceEmpty)+'</div>'; return; }
     function cost(k){ return {pc:k.pc*u.pc*u.mult, mob:k.mob*u.mob*u.mult}; }
     var full=cost({pc:sim.totPC,mob:sim.totMob}), fullTot=full.pc+full.mob;
-    var cum=0, rampCost=0, y1=0, rows=[];
+    var prev=0, rampCost=0, y1=0, rows=[];
     for(var i=sim.obIdx;i<=Math.max(sim.obIdx+11,sim.completion);i++){
       var k=kindAt(sim,i), c=cost(k), t=c.pc+c.mob; if(i<sim.obIdx+12) y1+=t;
       if(i<=sim.completion){
-        cum+=t; rampCost+=t;
+        rampCost+=t;
         var mo=sim.months[i-sim.obIdx], added=mo?mo.sum:0;
-        rows.push('<tr'+(i===sim.completion?' class="full"':'')+'><td>'+lblL(i)+(i===sim.completion?' <span class="tag">'+esc(T.fullRow)+'</span>':'')+'</td><td class="n new">'+(added?'+'+added:'–')+'</td><td class="n">'+k.pc+'</td><td class="n">'+k.mob+'</td><td class="n">'+money(c.pc)+'</td><td class="n">'+money(c.mob)+'</td><td class="n"><b>'+money(t)+'</b></td><td class="n">'+money(cum)+'</td></tr>');
+        rows.push('<tr'+(i===sim.completion?' class="full"':'')+'><td>'+lblL(i)+(i===sim.completion?' <span class="tag">'+esc(T.fullRow)+'</span>':'')+'</td>'+
+          '<td class="n new">'+(added?'+'+added:'–')+'</td>'+
+          '<td class="n">'+money(prev)+'</td>'+
+          '<td class="n">'+(t-prev>0.004?'+ '+money(t-prev):'–')+'</td>'+
+          '<td class="n"><b>'+money(t)+'</b></td>'+
+          '<td class="n who">'+esc(T.firstVal(k.pc,k.mob))+'</td></tr>');
+        prev=t;
       }
     }
     var save=fullTot*12-y1;
