@@ -222,3 +222,7 @@ table.plan.mig td.muted{color:var(--muted)}
 table.plan.mig td.up{color:var(--amber);font-weight:600}
 table.plan.mig td.down{color:var(--ok);font-weight:600}
 table.plan.mig tfoot td{border-top:2px solid var(--line);border-bottom:0;font-weight:700;padding-top:11px}
+table.plan.mig td.md{padding-top:5px;padding-bottom:5px}
+table.plan.mig td.md input{width:64px;padding:4px 6px;font-size:13px;border-radius:8px}
+table.plan.mig td.md input.own{border-color:var(--brand);background:var(--tint1);color:var(--brand-deep);font-weight:600}
+.md-reset{margin:0 0 8px;text-align:right}
