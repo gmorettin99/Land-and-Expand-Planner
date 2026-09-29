@@ -28,21 +28,23 @@
     return {
       today: todayISO(), ob:'', setup:'', pilot:'', cap:3, pct:10, curve:'lin', order:'free',
       price:{open:false,plan:'ops',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'m'},
+      mig:{open:false},
       entities:[{id:uid(),name:'',pc:0,mob:0}],
       tools:[
-        {key:'mdm',label:'MDM attuale',scope:'both',on:false,name:'',date:'',ents:[]},
-        {key:'edr',label:'EDR attuale',scope:'pc',on:false,name:'',date:'',ents:[]}
+        {key:'mdm',label:'MDM attuale',scope:'both',on:false,name:'',date:'',fee:0,ents:[]},
+        {key:'edr',label:'EDR attuale',scope:'pc',on:false,name:'',date:'',fee:0,ents:[]}
       ]
     };
   }
   function example(){
     return {
       price:{open:false,plan:'comp',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'m'},
+      mig:{open:false},
       today: todayISO(), ob:'2026-11-01', setup:2, pilot:25, cap:3, pct:10, curve:'lin', order:'free',
       entities:[{id:'a',name:T.entity+' A',pc:60,mob:20},{id:'b',name:T.entity+' B',pc:40,mob:15}],
       tools:[
-        {key:'mdm',label:'MDM attuale',scope:'both',on:true,name:'ManageEngine',date:'2027-02-01',ents:['a']},
-        {key:'edr',label:'EDR attuale',scope:'pc',on:true,name:'SentinelOne',date:'2027-03-01',ents:['a']}
+        {key:'mdm',label:'MDM attuale',scope:'both',on:true,name:'ManageEngine',date:'2027-02-01',fee:320,ents:['a']},
+        {key:'edr',label:'EDR attuale',scope:'pc',on:true,name:'SentinelOne',date:'2027-03-01',fee:360,ents:['a']}
       ]
     };
   }
@@ -54,6 +56,8 @@
     var old=st.price; st.price=dflt.price; st.price.open=!!old.open; st.price.mob=old.mob||'mob'; st.price.disc=old.disc||0; st.price.bill=old.bill||'m';
     st.price.edr=old.sec==='edr'||old.sec==='mdr'; st.price.mdr=old.sec==='mdr';
   }
+  if(!st.mig) st.mig={open:false};
+  st.tools.forEach(function(t){ if(t.fee===undefined) t.fee=0; });
   function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
 
   function dn(e){ if(e.name&&e.name.trim()) return e.name; var i=st.entities.indexOf(e); return T.entity+' '+String.fromCharCode(65+(i<0?0:i)); }
@@ -64,6 +68,8 @@
   function toolRelevant(t){ return t.key!=='edr' || edrBought(); }
   function activeTools(){ return st.tools.filter(function(t){ return t.on && parse(t.date) && t.ents.length && toolRelevant(t); }); }
   function toolEnd(t){ var r=frac(parse(t.date)); return Number.isInteger(r)?r:Math.floor(r)+1; } // primo mese senza lo strumento
+  function toolDevices(t){ var s=0; t.ents.forEach(function(id){ var e=entById(id); if(e) s+=e.pc+(t.scope==='both'?e.mob:0); }); return s; }
+  function toolFee(t){ return Math.max(0,+t.fee||0); }
   function toolActive(t,entId,idx){ return t.on && parse(t.date) && t.ents.indexOf(entId)>-1 && idx<frac(parse(t.date)); }
 
   function entRenewal(e){ var r=Infinity; activeTools().forEach(function(t){ if(t.ents.indexOf(e.id)>-1) r=Math.min(r,frac(parse(t.date))); }); return r; }
@@ -186,6 +192,8 @@
           '<label class="f"><span>'+esc(T.name)+'</span><input type="text" placeholder="'+esc(T.toolPh[t.key])+'" data-t="'+ti+'" data-f="name" value="'+esc(t.name)+'"></label>'+
           '<label class="f"><span>'+esc(T.renewalDate)+'</span><input type="date" data-t="'+ti+'" data-f="date" value="'+esc(t.date)+'"></label>'+
         '</div>'+
+        '<label class="f"><span>'+esc(T.fee)+'</span><input type="number" min="0" step="any" placeholder="0" data-t="'+ti+'" data-f="fee" value="'+(t.fee||'')+'"></label>'+
+        '<p class="hint fee-hint" id="feeHint'+ti+'"></p>'+
         '<label class="f" style="margin-bottom:0"><span>'+esc(T.covered[t.scope])+'</span></label>'+
         '<div class="chips">'+st.entities.map(function(e){ return '<button type="button" class="chip" data-t="'+ti+'" data-chip="'+e.id+'" aria-pressed="'+(t.ents.indexOf(e.id)>-1)+'">'+esc(dn(e))+'</button>'; }).join('')+'</div>'+
         (t.key==='edr'?'<label class="switch swap"><input type="checkbox" data-swap="1"'+(edrBought()?' checked':'')+'>'+esc(T.edrSwap)+'</label>':'')+
@@ -204,6 +212,7 @@
     var ti=el.getAttribute('data-t'); if(ti===null) return;
     var t=st.tools[+ti], f=el.getAttribute('data-f');
     if(f==='on'){ t.on=el.checked; el.closest('.tool').classList.toggle('off',!t.on); }
+    else if(f==='fee') t.fee=Math.max(0,parseFloat(el.value)||0);
     else t[f]=el.value;
     update();
   });
@@ -223,7 +232,7 @@
   function load(next){
     st=next;
     document.querySelectorAll('[data-k]').forEach(function(el){ el.value=st[el.getAttribute('data-k')]; });
-    renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); update();
+    renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); renderMigOpts(); syncMigToggle(); update();
   }
   document.getElementById('reset').addEventListener('click',function(){
     if(isReady()&&!confirm(T.confirmReset)) return;
@@ -234,8 +243,17 @@
   function isReady(){ var t=0; st.entities.forEach(function(e){ t+=e.pc+e.mob; }); return !!parse(st.ob)&&t>0; }
 
   /* ---------- Output ---------- */
+  function refreshFeeHints(){
+    st.tools.forEach(function(t,ti){
+      var el=document.getElementById('feeHint'+ti); if(!el) return;
+      var n=toolDevices(t), f=toolFee(t);
+      el.textContent=(n>0&&f>0)?T.feeHint(plural(n,'device'),money(f/n)):'';
+      el.hidden=!el.textContent;
+    });
+  }
   function update(){
     save();
+    refreshFeeHints();
     var totPC=0,totMob=0; st.entities.forEach(function(e){ totPC+=e.pc; totMob+=e.mob; });
     document.getElementById('totPC').textContent=totPC;
     document.getElementById('totMob').textContent=totMob;
@@ -317,6 +335,7 @@
     drawChart(sim);
     drawPlan(sim);
     drawPrice(sim);
+    drawMig(sim);
   }
 
   function drawChart(sim){
@@ -427,6 +446,7 @@
     if(k==='disc'){ var d=Math.max(0,parseFloat(ev.target.value)||0); if(d>P.maxDiscount){ d=P.maxDiscount; ev.target.value=d; } st.price.disc=d; }
     else st.price[k]=ev.target.value;
     if(k==='plan'){ renderPriceOpts(); renderTools(); }
+    if(k==='disc'||k==='bill') renderMigOpts();
     update();
   });
   document.getElementById('priceOpts').addEventListener('click',function(ev){
@@ -467,6 +487,83 @@
     TB.innerHTML='<table class="plan"><thead><tr><th>'+H[0]+'</th>'+H.slice(1).map(function(h){ return '<th class="n">'+h+'</th>'; }).join('')+'</tr></thead><tbody>'+rows.join('')+'</tbody></table>';
   }
 
+
+  /* ---------- Piano di migrazione finale ----------
+     Mese per mese fino a flotta completa (e fino all'ultima disdetta): canone Factorial a listino e finale
+     (con sconto e fatturazione), dispositivi e costo in sovrapposizione con gli strumenti attuali,
+     canone degli strumenti attuali pagato fino al rinnovo e sottratto dal mese in cui vengono disdetti. */
+  function renderMigOpts(){
+    var pr=st.price;
+    document.getElementById('migOpts').innerHTML=
+      '<label class="f"><span>'+esc(T.optDisc)+'</span><input type="number" min="0" max="'+P.maxDiscount+'" placeholder="0" data-m="disc" value="'+(pr.disc||'')+'"></label>'+
+      '<label class="f"><span>'+esc(T.optBill)+'</span><select data-m="bill">'+opt('m',T.billM,0,pr.bill)+opt('y',T.billY,0,pr.bill)+'</select></label>'+
+      '<p class="hint mig-pkg" id="migPkg"></p>';
+  }
+  function syncMigToggle(){
+    var b=document.getElementById('migToggle'), open=!!st.mig.open;
+    b.textContent=open?T.migHide:T.migShow; b.setAttribute('aria-expanded',String(open));
+    document.getElementById('migBody').hidden=!open;
+  }
+  document.getElementById('migToggle').addEventListener('click',function(){ st.mig.open=!st.mig.open; syncMigToggle(); update(); });
+  document.getElementById('migOpts').addEventListener('input',function(ev){
+    var k=ev.target.getAttribute('data-m'); if(!k) return;
+    if(k==='disc'){ var d=Math.max(0,parseFloat(ev.target.value)||0); if(d>P.maxDiscount){ d=P.maxDiscount; ev.target.value=d; } st.price.disc=d; }
+    else st.price[k]=ev.target.value;
+    renderPriceOpts(); update();
+  });
+  function toolOverlap(sim,t,idx){
+    var s=0; t.ents.forEach(function(id){ if(!toolActive(t,id,idx)) return; var c=sim.cumAt(idx,id); s+=c.pc+(t.scope==='both'?c.mob:0); }); return s;
+  }
+  function drawMig(sim){
+    if(!st.mig.open) return;
+    var u=unitPrices(), F=document.getElementById('migFacts'), TB=document.getElementById('migTable'), N=document.getElementById('migNoFee');
+    var pr=st.price, plan={ops:T.planOps,comp:T.planComp,alc:T.planAlc}[pr.plan];
+    var pkg=document.getElementById('migPkg'); if(pkg) pkg.textContent=T.migPkg(plan.split(' — ')[0],money(u.pc),money(u.mob));
+    if(u.pc===0&&u.mob===0){ F.innerHTML=''; TB.innerHTML='<div class="empty">'+esc(T.priceEmpty)+'</div>'; N.hidden=true; return; }
+    var tools=activeTools(), paid=tools.filter(function(t){ return toolFee(t)>0; });
+    N.hidden=!(tools.length&&!paid.length);
+    var base=0; paid.forEach(function(t){ base+=toolFee(t); });
+    var end=sim.completion; tools.forEach(function(t){ end=Math.max(end,toolEnd(t)); });
+    var disc=Math.min(P.maxDiscount,Math.max(0,+pr.disc||0));
+    var tot={list:0,fin:0,ov:0,old:0,all:0}, rows=[], fullFin=0;
+    for(var i=sim.obIdx;i<=end;i++){
+      var k=kindAt(sim,i), list=k.pc*u.pc+k.mob*u.mob, fin=list*u.mult, old=0;
+      fullFin=fin;
+      var cells=tools.map(function(t){
+        var fee=toolFee(t), te=toolEnd(t), n=toolDevices(t);
+        if(i<te){
+          var ov=toolOverlap(sim,t,i), oc=n?ov*fee/n:0; old+=fee; tot.ov+=oc;
+          return '<td class="n">'+(fee?money(fee):'–')+(ov?'<span class="ovl">'+esc(T.ovSub(plural(ov,'device'),fee?money(oc):''))+'</span>':'')+'</td>';
+        }
+        if(i===te) return '<td class="n cut"><span class="tag end">'+esc(T.cancelled)+'</span>'+(fee?'<span class="ovl good">− '+money(fee)+'</span>':'')+'</td>';
+        return '<td class="n muted">–</td>';
+      });
+      var all=fin+old, d=all-base;
+      tot.list+=list; tot.fin+=fin; tot.old+=old; tot.all+=all;
+      var isFull=i===sim.completion;
+      rows.push('<tr'+(isFull?' class="full"':'')+'><td>'+lbl(i)+(isFull?' <span class="tag">'+esc(T.fullRow)+'</span>':'')+'</td>'+
+        '<td class="n">'+(k.pc+k.mob)+'</td>'+
+        '<td class="n">'+money(list)+'</td>'+
+        '<td class="n"><b>'+money(fin)+'</b></td>'+
+        cells.join('')+
+        (tools.length?'<td class="n"><b>'+money(all)+'</b></td>'+(paid.length?'<td class="n '+(d>0.004?'up':(d<-0.004?'down':''))+'">'+(Math.abs(d)<0.005?'–':(d>0?'+ ':'− ')+money(Math.abs(d)))+'</td>':''):'')+
+        '</tr>');
+    }
+    var H=T.migH;
+    var head='<th>'+H.month+'</th><th class="n">'+H.dev+'</th><th class="n">'+H.list+'</th><th class="n">'+H.fin+(disc||pr.bill==='y'?' <span class="disc">'+esc(T.migDisc(disc,pr.bill==='y'))+'</span>':'')+'</th>'+
+      tools.map(function(t){ return '<th class="n">'+esc(t.name||T.toolLabel[t.key])+'</th>'; }).join('')+
+      (tools.length?'<th class="n">'+H.all+'</th>'+(paid.length?'<th class="n">'+H.delta+'</th>':''):'');
+    var foot='<tr class="sum"><td>'+esc(H.total)+'</td><td></td><td class="n">'+money(tot.list)+'</td><td class="n">'+money(tot.fin)+'</td>'+
+      tools.map(function(){ return '<td></td>'; }).join('')+
+      (tools.length?'<td class="n">'+money(tot.all)+'</td>'+(paid.length?'<td></td>':''):'')+'</tr>';
+    TB.innerHTML='<table class="plan mig"><thead><tr>'+head+'</tr></thead><tbody>'+rows.join('')+'</tbody><tfoot>'+foot+'</tfoot></table>';
+    var delta=fullFin-base;
+    F.innerHTML='<div><dt>'+esc(T.mf.base)+'</dt><dd>'+(paid.length?money(base):'–')+'</dd></div>'+
+      '<div><dt>'+esc(T.mf.fin)+'</dt><dd>'+money(fullFin)+'</dd></div>'+
+      '<div><dt>'+esc(T.mf.ov)+'</dt><dd'+(tot.ov>0?' class="warn"':'')+'>'+(paid.length?money(tot.ov):'–')+'</dd></div>'+
+      '<div><dt>'+esc(T.mf.delta)+'</dt><dd class="'+(paid.length?(delta<=0?'good':'warn'):'')+'">'+(paid.length?(delta>0?'+ ':(delta<0?'− ':''))+money(Math.abs(delta)):'–')+'</dd></div>';
+  }
+
   function applyStatic(){
     document.documentElement.lang=lang;
     document.title=T.title;
@@ -480,8 +577,8 @@
     var defaultName=new RegExp('^('+LANGS.map(function(l){ return window.I18N[l].entity; }).join('|')+') ([A-Z])$');
     st.entities.forEach(function(e){ var m=defaultName.exec(e.name||''); if(m) e.name=T.entity+' '+m[2]; });
     try{ localStorage.setItem(LANG_KEY,lang); }catch(e){}
-    applyStatic(); renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); update();
+    applyStatic(); renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); renderMigOpts(); syncMigToggle(); update();
   });
 
-  applyStatic(); bindSimple(); renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); update();
+  applyStatic(); bindSimple(); renderEnts(); renderTools(); renderPriceOpts(); syncPriceToggle(); renderMigOpts(); syncMigToggle(); update();
 })();
