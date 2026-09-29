@@ -202,3 +202,23 @@ svg .val.edr-v{fill:var(--edr);font-weight:600}
 .chip:disabled{cursor:default;opacity:.75}
 .price-opts .addons{grid-column:1/-1}
 #priceTable td.who{white-space:nowrap}
+
+/* Piano di migrazione finale */
+.fee-hint{margin:-4px 0 10px}
+.fee-hint[hidden]{display:none}
+.mig-pkg{grid-column:span 1;margin:0 0 8px;align-self:end}
+@media (max-width:560px){.mig-pkg{grid-column:auto}}
+.mig-nofee{margin:0 0 14px;padding:10px 12px;border-radius:10px;background:var(--amber-soft);color:var(--ink2)}
+.mig-nofee[hidden]{display:none}
+table.plan.mig{min-width:760px}
+table.plan.mig th{white-space:nowrap}
+table.plan.mig th .disc{display:block;font-size:11px;color:var(--brand-deep);font-weight:600}
+table.plan.mig td{white-space:nowrap;padding:9px 8px}
+table.plan.mig th{padding:8px}
+table.plan.mig .ovl{display:block;font-size:11.5px;color:var(--amber);font-weight:500;white-space:normal;max-width:130px;margin-left:auto;line-height:1.35}
+table.plan.mig .ovl.good{color:var(--ok);font-weight:600}
+table.plan.mig td.cut .tag{margin-bottom:2px}
+table.plan.mig td.muted{color:var(--muted)}
+table.plan.mig td.up{color:var(--amber);font-weight:600}
+table.plan.mig td.down{color:var(--ok);font-weight:600}
+table.plan.mig tfoot td{border-top:2px solid var(--line);border-bottom:0;font-weight:700;padding-top:11px}
