@@ -27,8 +27,8 @@
   function blank(){
     return {
       today: todayISO(), ob:'', setup:'', pilot:'', cap:3, pct:10, curve:'lin', order:'free',
-      price:{open:false,plan:'ops',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'m'},
-      mig:{open:false},
+      price:{open:false,plan:'ops',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'y'},
+      mig:{open:false,disc:{}},
       entities:[{id:uid(),name:'',pc:0,mob:0}],
       tools:[
         {key:'mdm',label:'MDM attuale',scope:'both',on:false,name:'',date:'',fee:0,ents:[]},
@@ -38,8 +38,8 @@
   }
   function example(){
     return {
-      price:{open:false,plan:'comp',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'m'},
-      mig:{open:false},
+      price:{open:false,plan:'comp',intune:false,edr:false,mdr:false,mob:'mob',disc:0,bill:'y'},
+      mig:{open:false,disc:{}},
       today: todayISO(), ob:'2026-11-01', setup:2, pilot:25, cap:3, pct:10, curve:'lin', order:'free',
       entities:[{id:'a',name:T.entity+' A',pc:60,mob:20},{id:'b',name:T.entity+' B',pc:40,mob:15}],
       tools:[
@@ -57,6 +57,7 @@
     st.price.edr=old.sec==='edr'||old.sec==='mdr'; st.price.mdr=old.sec==='mdr';
   }
   if(!st.mig) st.mig={open:false};
+  if(!st.mig.disc) st.mig.disc={};
   st.tools.forEach(function(t){ if(t.fee===undefined) t.fee=0; });
   function save(){ try{ localStorage.setItem(KEY,JSON.stringify(st)); }catch(e){} }
 
@@ -511,6 +512,15 @@
     else st.price[k]=ev.target.value;
     renderPriceOpts(); update();
   });
+  var migTable=document.getElementById('migTable');
+  migTable.addEventListener('change',function(ev){
+    var el=ev.target, i=el.getAttribute('data-md'); if(i===null) return;
+    if(el.value==='') delete st.mig.disc[i];
+    else st.mig.disc[i]=Math.min(100,Math.max(0,parseFloat(el.value)||0));
+    update();
+  });
+  migTable.addEventListener('keydown',function(ev){ if(ev.key==='Enter'&&ev.target.getAttribute('data-md')!==null) ev.target.blur(); });
+  migTable.addEventListener('click',function(ev){ if(ev.target.getAttribute('data-mdreset')){ st.mig.disc={}; update(); } });
   function toolOverlap(sim,t,idx){
     var s=0; t.ents.forEach(function(id){ if(!toolActive(t,id,idx)) return; var c=sim.cumAt(idx,id); s+=c.pc+(t.scope==='both'?c.mob:0); }); return s;
   }
@@ -524,10 +534,12 @@
     N.hidden=!(tools.length&&!paid.length);
     var base=0; paid.forEach(function(t){ base+=toolFee(t); });
     var end=sim.completion; tools.forEach(function(t){ end=Math.max(end,toolEnd(t)); });
-    var disc=Math.min(P.maxDiscount,Math.max(0,+pr.disc||0));
+    var disc=Math.min(P.maxDiscount,Math.max(0,+pr.disc||0)), annual=pr.bill==='y'?P.annualFactor:1;
+    var anyOwn=Object.keys(st.mig.disc).length>0;
     var tot={list:0,fin:0,ov:0,old:0,all:0}, rows=[], fullFin=0;
     for(var i=sim.obIdx;i<=end;i++){
-      var k=kindAt(sim,i), list=k.pc*u.pc+k.mob*u.mob, fin=list*u.mult, old=0;
+      var k=kindAt(sim,i), list=k.pc*u.pc+k.mob*u.mob, own=st.mig.disc[i]!==undefined, md=own?st.mig.disc[i]:disc;
+      var fin=list*(1-md/100)*annual, old=0;
       fullFin=fin;
       var cells=tools.map(function(t){
         var fee=toolFee(t), te=toolEnd(t), n=toolDevices(t);
@@ -544,19 +556,20 @@
       rows.push('<tr'+(isFull?' class="full"':'')+'><td>'+lbl(i)+(isFull?' <span class="tag">'+esc(T.fullRow)+'</span>':'')+'</td>'+
         '<td class="n">'+(k.pc+k.mob)+'</td>'+
         '<td class="n">'+money(list)+'</td>'+
+        '<td class="n md"><input type="number" min="0" max="100" step="any" data-md="'+i+'" class="'+(own?'own':'')+'" aria-label="'+esc(T.migH.disc+' '+lblL(i))+'" placeholder="'+disc+'" value="'+(own?md:'')+'"></td>'+
         '<td class="n"><b>'+money(fin)+'</b></td>'+
         cells.join('')+
         (tools.length?'<td class="n"><b>'+money(all)+'</b></td>'+(paid.length?'<td class="n '+(d>0.004?'up':(d<-0.004?'down':''))+'">'+(Math.abs(d)<0.005?'–':(d>0?'+ ':'− ')+money(Math.abs(d)))+'</td>':''):'')+
         '</tr>');
     }
     var H=T.migH;
-    var head='<th>'+H.month+'</th><th class="n">'+H.dev+'</th><th class="n">'+H.list+'</th><th class="n">'+H.fin+(disc||pr.bill==='y'?' <span class="disc">'+esc(T.migDisc(disc,pr.bill==='y'))+'</span>':'')+'</th>'+
+    var head='<th>'+H.month+'</th><th class="n">'+H.dev+'</th><th class="n">'+H.list+'</th><th class="n">'+H.disc+'</th><th class="n">'+H.fin+(pr.bill==='y'?' <span class="disc">'+esc(T.migDisc(0,true))+'</span>':'')+'</th>'+
       tools.map(function(t){ return '<th class="n">'+esc(t.name||T.toolLabel[t.key])+'</th>'; }).join('')+
       (tools.length?'<th class="n">'+H.all+'</th>'+(paid.length?'<th class="n">'+H.delta+'</th>':''):'');
-    var foot='<tr class="sum"><td>'+esc(H.total)+'</td><td></td><td class="n">'+money(tot.list)+'</td><td class="n">'+money(tot.fin)+'</td>'+
+    var foot='<tr class="sum"><td>'+esc(H.total)+'</td><td></td><td class="n">'+money(tot.list)+'</td><td></td><td class="n">'+money(tot.fin)+'</td>'+
       tools.map(function(){ return '<td></td>'; }).join('')+
       (tools.length?'<td class="n">'+money(tot.all)+'</td>'+(paid.length?'<td></td>':''):'')+'</tr>';
-    TB.innerHTML='<table class="plan mig"><thead><tr>'+head+'</tr></thead><tbody>'+rows.join('')+'</tbody><tfoot>'+foot+'</tfoot></table>';
+    TB.innerHTML=(anyOwn?'<p class="md-reset"><button type="button" class="reset" data-mdreset="1">'+esc(T.migDiscReset)+'</button></p>':'')+'<table class="plan mig"><thead><tr>'+head+'</tr></thead><tbody>'+rows.join('')+'</tbody><tfoot>'+foot+'</tfoot></table>';
     var delta=fullFin-base;
     F.innerHTML='<div><dt>'+esc(T.mf.base)+'</dt><dd>'+(paid.length?money(base):'–')+'</dd></div>'+
       '<div><dt>'+esc(T.mf.fin)+'</dt><dd>'+money(fullFin)+'</dd></div>'+
